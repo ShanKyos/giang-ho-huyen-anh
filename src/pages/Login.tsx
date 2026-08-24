@@ -3,7 +3,7 @@ import { useNavigate, Link } from "react-router";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/providers/trpc";
-import { getLang, t, toggleLang } from "@/lib/lang";
+import { t } from "@/lib/lang";
 
 // ---------- Ronin Wallet (extension / in-app browser) — EIP-1193 ----------
 type Eip1193 = {

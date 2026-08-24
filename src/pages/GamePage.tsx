@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { LOGIN_PATH } from "@/const";
 import { Link } from "react-router";
+import { t, localeTag } from "@/lib/lang";
 
 const REALM_NAMES = [
   "Phàm Nhân",

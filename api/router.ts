@@ -3,6 +3,7 @@ import { saveRouter } from "./saveRouter";
 import { leaderboardRouter } from "./leaderboardRouter";
 import { walletRouter } from "./walletRouter";
 import { googleRouter } from "./googleRouter";
+import { npcRouter } from "./npcRouter";
 import { createRouter, publicQuery } from "./middleware";
 
 export const appRouter = createRouter({
@@ -14,6 +15,7 @@ export const appRouter = createRouter({
   leaderboard: leaderboardRouter,
   wallet: walletRouter,
   google: googleRouter,
+  npc: npcRouter,
 });
 
 export type AppRouter = typeof appRouter;

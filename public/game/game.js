@@ -7398,6 +7398,7 @@ function renderShop(n){
         <button class="mini-btn" onclick="sellItem(${x.i});renderShop(curShopNpc)">+${itemSellPrice(x.it)}◈</button></div>`;
     }
   }
+  html += aiChatBlock(n.id);
   el('panel-quest').innerHTML = html;
   closePanels(); el('panel-quest').classList.remove('hidden');
 }
@@ -8513,6 +8514,73 @@ function questOnTalk(npc){
   }
 }
 
+// ═══════════ AI NPC — trò chuyện tự do bằng LLM (GĐ1: 3 NPC thí điểm) ═══════════
+// Fallback tuyệt đối: server/LLM không khả dụng → ẩn ô chat hoặc báo bận, game không vỡ.
+const AI_NPCS = { truonglang:1, duoclao:1, quachtinh:1 };
+let aiNpcOn = null; // null = đang kiểm tra · true/false
+(function aiNpcPing(){
+  if (!window.fetch){ aiNpcOn = false; return; }
+  fetch('/api/trpc/npc.status?input=' + encodeURIComponent('{"json":null}'))
+    .then(r => r.json())
+    .then(d => { aiNpcOn = !!(d && d.result && d.result.data && d.result.data.json && d.result.data.json.enabled); })
+    .catch(() => { aiNpcOn = false; });
+})();
+function aiEsc(s){ return String(s).replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c])); }
+function aiChatBlock(npcId){
+  if (!AI_NPCS[npcId] || aiNpcOn === false) return '';
+  return `<div style="margin-top:10px;border-top:1px dashed rgba(201,162,39,.3);padding-top:8px">
+    <div style="font-size:11.5px;color:#9a8a6a;margin-bottom:5px">💬 TRÒ CHUYỆN TỰ DO <span style="opacity:.6">— hỏi gì cũng được, họ sẽ đáp theo cách riêng của mình</span></div>
+    <div id="ai-chat-reply" style="font-size:12.5px;color:#e8dcc0;line-height:1.6"></div>
+    <div style="display:flex;gap:6px;margin-top:5px">
+      <input id="ai-chat-input" maxlength="200" placeholder="Nói gì đó…" autocomplete="off"
+        style="flex:1;background:rgba(0,0,0,.35);border:1px solid #6a5a3a;border-radius:6px;color:#e8dcc0;padding:6px 8px;font-size:12.5px;outline:none"
+        onkeydown="if(event.key==='Enter'){event.preventDefault();aiChatSend('${npcId}');}">
+      <button class="mini-btn" id="ai-chat-btn" onclick="aiChatSend('${npcId}')">Gửi</button>
+    </div></div>`;
+}
+function aiNpcCtx(){
+  const p = player;
+  const sect = SECTS[p.sect] ? SECTS[p.sect].name : 'Tán Nhân';
+  const realm = (p.dantian && DANTIAN_REALMS[p.dantian.realm]) ? DANTIAN_REALMS[p.dantian.realm].name : 'Phàm Nhân';
+  const traits = (p.traits || []).map(tid => { const t = TRAITS.find(x => x.id === tid); return t ? t.name : String(tid); });
+  const pers = PERSONALITIES[p.personality] ? PERSONALITIES[p.personality].name : 'Trung Dung';
+  const q = currentQuest();
+  const g = gameTimeInfo();
+  const wx = weatherNow();
+  return {
+    level: p.level || 1, sect, realm,
+    hpPct: Math.max(0, Math.min(100, Math.round((p.hp / p.maxHp) * 100))),
+    sin: p.toiac || 0, traits, pers,
+    mapName: MAPS[curMap].name, questName: q ? q.name : '',
+    season: g.season.name || g.season.id, weather: wx ? wx.name : 'Không rõ',
+  };
+}
+window.aiChatSend = async function(npcId){
+  const inp = el('ai-chat-input'), box = el('ai-chat-reply'), btn = el('ai-chat-btn');
+  if (!inp || !box) return;
+  const msg = inp.value.trim();
+  if (!msg) return;
+  inp.disabled = true; if (btn) btn.disabled = true;
+  box.innerHTML = `<div style="font-size:12px;color:#b8a878;font-style:italic;margin-bottom:4px">» ${aiEsc(msg)}</div><div style="opacity:.55;font-size:12px">…</div>`;
+  try {
+    const res = await fetch('/api/trpc/npc.chat', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ json: { npcId, message: msg, ctx: aiNpcCtx() } }),
+    });
+    const data = await res.json();
+    const out = data && data.result && data.result.data && data.result.data.json;
+    if (!out || !out.reply) throw new Error('bad reply');
+    box.innerHTML = `<div style="font-size:12px;color:#b8a878;font-style:italic;margin-bottom:4px">» ${aiEsc(msg)}</div>
+      <div style="font-style:italic;color:#e8dcc0;line-height:1.65;background:rgba(0,0,0,.25);padding:8px 10px;border-radius:8px">“${aiEsc(out.reply)}”</div>
+      ${typeof out.remaining === 'number' && out.remaining <= 5 ? `<div style="font-size:11px;color:#9a8a6a;margin-top:3px">Hôm nay còn ${out.remaining} lượt trò chuyện.</div>` : ''}`;
+    AudioSys.sfx('ui', 0.5);
+  } catch (e) {
+    box.innerHTML = `<div style="font-size:12px;opacity:.55;font-style:italic">(Đang bận — hãy quay lại sau.)</div>`;
+  }
+  inp.disabled = false; if (btn) btn.disabled = false;
+  inp.value = ''; inp.focus();
+};
+
 // ---------- Dialog NPC quest giver (chính + phụ theo vùng) ----------
 function renderQuestNpc(n){
   questOnTalk(n);
@@ -8589,6 +8657,7 @@ function renderQuestNpc(n){
       html += `</div>`;
     }
   }
+  html += aiChatBlock(n.id);
   panel.innerHTML = html;
   closePanels(); panel.classList.remove('hidden');
 }
