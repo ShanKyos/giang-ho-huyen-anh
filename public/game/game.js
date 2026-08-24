@@ -6399,6 +6399,7 @@ function startGame(sectKey, quze){
   } else {
     addFloat(player.x, player.y-50, 'Tương Dương Thành — hãy bái kiến Quách Đại Hiệp (lại gần, nhấn E)!', '#f0d68a', 15);
   }
+  if (window.TEST_MODE) addFloat(player.x, player.y-95, 'TEST MODE — nhấn ` (phím dưới Esc) mở console, gõ /help xem lệnh', '#7fd4ff', 12);
   el('intro-story').classList.add('hidden');
   el('sect-select').classList.add('hidden');
   el('hud').classList.remove('hidden');
@@ -6461,7 +6462,12 @@ window.addEventListener('beforeunload', saveGame);
 // quick-start via URL: ?sect=thieulam|toanchan|daohoa|comoc
 // defer: chờ toàn bộ script nạp xong (TUT_STEPS, SIDE_QUESTS, intro... khai báo ở cuối file) tránh TDZ
 // TEST_MODE (?test=1 hoặc ?max=1): playtest — dịch chuyển tự do mọi map/phó bản, bỏ qua điều kiện mở
-window.TEST_MODE = !RELEASE_BUILD && /([?&])(test|max)=1/.test(location.search); // bản phát hành: luôn tắt
+// Bản phát hành vẫn mở cho ngườ​i chơi chủ động trải nghiệm full: thêm ?test=1 (hoặc ?max=1) vào link
+window.TEST_MODE = /([?&])(test|max)=1/.test(location.search);
+// TEST_MODE: hiện checkbox "Chế độ thử nghiệm" trên các màn hình bắt đầu (mặc định ẩn trong index.html)
+if (window.TEST_MODE) setTimeout(() => {
+  for (const id of ['max-mode', 'max-mode-quze', 'max-mode-intro']) { const l = el(id); if (l) l.style.display = 'block'; }
+}, 0);
 setTimeout(function(){
   const m = location.search.match(/sect=(\w+)/);
   if (m && SECTS[m[1]]){
