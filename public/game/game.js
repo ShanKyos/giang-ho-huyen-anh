@@ -7786,7 +7786,7 @@ const INTRO_PAGES = [
 Quân Mông Cổ từ thảo nguyên phương Bắc kéo xuống như vũ bão, vây chặt <b>Tương Dương Thành</b> — cánh cửa cuối cùng của Trung Nguyên.
 
 Giang hồ chấn động. Ngũ Tuyệt tàn lụi, anh hùng các phái đổ về Tương Dương nghĩa cử cao đẹp... hoặc ẩn mình chờ thời.`,
-  `<span class="is-title">THƠI VẬN CỦA NGƯƠI</span>
+  `<span class="is-title">THỜI VẬN CỦA NGƯƠI</span>
 Ngươi — một thiếu niên mồ côi — được <b>Trưởng Làng Thanh Ngưu</b> nuôi dưỡng ở <b>Đào Hoa Đảo</b>, hòn đảo hoa đào nở quanh năm giữa biển Đông.
 
 Đêm qua, đạo tặc <b>Hắc Phong Sát</b> đã đổ bộ lên đảo, cướp phá làng chài...
@@ -8334,6 +8334,67 @@ const SIDE_QUESTS = [
   { id:'s_ng3', npc:'traichu', map:'ngoai',      reqLv:10, reqMain:10, name:'Trại Ngựa Ngoại Ô',    desc:'Bắt 3 Tuấn Mã Hoang ngoài đồng cho Mục Đồng (rượt đến kiệt sức rồi bấm E).', type:'catch', need:3, rew:{xp:1500, silver:300, mat:2, thau:1} },
   { id:'s_mc3', npc:'noiung',  map:'mongco',     reqLv:80, reqMain:27, name:'Tuấn Mã Thảo Nguyên', desc:'Bắt 4 Tuấn Mã Hoang trên thảo nguyên Mông Cổ giúp quân doanh.', type:'catch', need:4, rew:{xp:85000, silver:3200, thau:3} }, // GDD Đợt 2 B5
 ];
+// ═══════════ 50 PHỤ TUYẾN KIM DUNG — trải khắp các map (giết quái · cứu người · trừng gian · thử ải) ═══════════
+SIDE_QUESTS.push(
+  // ── Đào Hoa Đảo (Trưởng Làng · Dược Sư) ──
+  { id:'s_jy01', npc:'truonglang', map:'daohoa', reqLv:3,  reqMain:0,  name:'Lễ Vật Đầu Xuân',            desc:'Dân làng sắp đón khách quý từ Tương Dương — cần 12 Dã Trư làm thịt đãi tiệc.', type:'kill', mob:'boar', need:12, rew:{xp:500, silver:90} },
+  { id:'s_jy02', npc:'duocsu',     map:'daohoa', reqLv:4,  reqMain:0,  name:'Phương Thuốc Cứu Dịch',      desc:'Bệnh dịch lan trong làng. Hái 8 Thảo Dược giúp Dược Sư chế thuốc cứu người.', type:'collect', need:8, rew:{xp:450, silver:130, mat:2} },
+  { id:'s_jy03', npc:'truonglang', map:'daohoa', reqLv:5,  reqMain:0,  name:'Sói Dữ Vây Làng',            desc:'Bầy Tàn Lang từ rừng Đào kéo xuống cắn gia súc. Diệt 10 con bảo vệ làng.', type:'kill', mob:'wolf', need:10, rew:{xp:820, silver:160} },
+  { id:'s_jy04', npc:'duocsu',     map:'daohoa', reqLv:6,  reqMain:0,  name:'Hồ Ly Trộm Thuốc',           desc:'Cáo Đỏ thành tinh trộm dược liệu quý. Diệt 8 con đoạt lại thuốc.', type:'kill', mob:'caodo', need:8, rew:{xp:900, silver:140, mat:2} },
+  { id:'s_jy05', npc:'truonglang', map:'daohoa', reqLv:7,  reqMain:0,  name:'Truy Kích Hắc Phong Dư Đảng', desc:'Dư đảng đạo tặc đêm trước lẩn vào rừng. Diệt 10 tên Sơn Tặc trừ hậu họa.', type:'kill', mob:'bandit', need:10, rew:{xp:1550, silver:260} },
+  { id:'s_jy06', npc:'duocsu',     map:'daohoa', reqLv:8,  reqMain:0,  name:'Phá Trận Hồn',               desc:'Đào Hoa Trận Nhân cuồng hóa tấn công dân làng — gợi nhớ trận pháp thất truyền của Đảo Chủ. Phá 6 tượng.', type:'kill', mob:'trannhan', need:6, rew:{xp:1350, silver:190, mat:2} },
+  { id:'s_jy07', npc:'truonglang', map:'daohoa', reqLv:6,  reqMain:0,  name:'Thuốc Cho Bà Cụ',            desc:'Bà cụ đầu làng lâm bệnh nặng. Đến gặp Dược Sư xin thuốc cứu người gấp.', type:'talk', targetNpc:'duocsu', need:1, rew:{xp:300, silver:100} },
+  { id:'s_jy08', npc:'duocsu',     map:'daohoa', reqLv:9,  reqMain:0,  name:'Kẻ Đứng Sau Vụ Cướp',        desc:'Tên Hắc Phong Sát tinh nhuệ còn phục trên đảo. Diệt hắn, giang hồ mới yên.', type:'kill', mob:'assassin', need:1, rew:{xp:700, silver:150, mat:2} },
+  // ── Tương Dương (Quách Đại Hiệp · Môn Khách) ──
+  { id:'s_jy09', npc:'monkhach',   map:'ngoai',  reqLv:11, reqMain:10, name:'Dọn Đường Lương Thực',       desc:'Sơn Tặc ngoại ô chặn đoàn xe lương vào thành. Diệt 12 tên mở đường.', type:'kill', mob:'bandit', need:12, rew:{xp:1900, silver:280} },
+  { id:'s_jy10', npc:'quachtinh',  map:'ngoai',  reqLv:12, reqMain:10, name:'Sói Hoành Ngoại Ô',          desc:'Tàn Lang ngoại ô quấy phá nông dân. Diệt 12 con.', type:'kill', mob:'wolf', need:12, rew:{xp:1000, silver:180} },
+  { id:'s_jy11', npc:'monkhach',   map:'ngoai',  reqLv:13, reqMain:10, name:'Truy Nã Hắc Phong',          desc:'Quách Đại Hiệp treo thưởng 2 tên Hắc Phong Sát tinh nhuệ ngoài thành.', type:'kill', mob:'assassin', need:2, rew:{xp:1100, silver:200, mat:2} },
+  { id:'s_jy12', npc:'quachtinh',  map:'tuongduong', reqLv:14, reqMain:11, name:'Điểm Danh Nghĩa Sĩ',     desc:'Đến gặp Môn Khách ghi danh nghĩa sĩ thủ thành — Quách Đại Hiệp cần biết ai còn ai mất.', type:'talk', targetNpc:'monkhach', need:1, rew:{xp:1200, silver:220} },
+  { id:'s_jy13', npc:'monkhach',   map:'ngoai',  reqLv:15, reqMain:12, name:'Trận Nhân Thất Thủ',         desc:'Trận Nhân trôi lạc ngoại ô hóa cuồng. Phá 8 tượng thu hồi trận cơ.', type:'kill', mob:'trannhan', need:8, rew:{xp:1800, silver:240, mat:2} },
+  { id:'s_jy14', npc:'quachtinh',  map:'daohoa', reqLv:16, reqMain:13, name:'Quân Nhu Dược Liệu',         desc:'Thương binh đầy doanh trại. Về Đào Hoa Đảo hái 10 Thảo Dược gấp.', type:'collect', need:10, rew:{xp:1600, silver:260, mat:2} },
+  { id:'s_jy15', npc:'monkhach',   map:'chungnam', reqLv:17, reqMain:14, name:'Tà Đồ Giang Hồ',           desc:'Ba tên du hiệp tà đạo lẫn trên Chung Nam bức hiếp lữ khách. Trừng trị 3 tên.', type:'kill', mob:'duhiep1', need:3, rew:{xp:4000, silver:400} },
+  { id:'s_jy16', npc:'quachtinh',  map:'chungnam', reqLv:18, reqMain:15, name:'Lễ Vật Bái Sơn',           desc:'Đem lễ vật của Quách Đại Hiệp lên Chung Nam giao cho Đạo Sĩ Toàn Chân — đáp lễ nghĩa cử năm xưa.', type:'talk', targetNpc:'daosi', need:1, rew:{xp:1800, silver:260} },
+  // ── Chung Nam Sơn (Đạo Sĩ Toàn Chân) ──
+  { id:'s_jy17', npc:'daosi',      map:'chungnam', reqLv:22, reqMain:15, name:'Tru Di Phản Đồ',           desc:'Phản đồ Toàn Chân còn lẩn trong núi. Diệt 10 tên thanh tẩy môn phái.', type:'kill', mob:'phando', need:10, rew:{xp:7800, silver:650} },
+  { id:'s_jy18', npc:'daosi',      map:'chungnam', reqLv:24, reqMain:15, name:'Cướp Bóc Đạo Sĩ',          desc:'Sơn Tặc chặn cướp đạo sĩ hành lễ. Diệt 8 tên trả lại thanh danh.', type:'kill', mob:'bandit', need:8, rew:{xp:1400, silver:220} },
+  { id:'s_jy19', npc:'daosi',      map:'chungnam', reqLv:26, reqMain:15, name:'Bạch Xà Tà Tông',          desc:'Xà Nữ theo tà phái phương Tây kéo đến gieo độc. Diệt 10 con.', type:'kill', mob:'xanu', need:10, rew:{xp:10800, silver:800, mat:2} },
+  { id:'s_jy20', npc:'daosi',      map:'chungnam', reqLv:30, reqMain:17, name:'Kiếm Khách Lạc Bước',      desc:'Kiếm Khách Bán Đảo luyện tà công tẩu hỏa nhập ma — hóa giải 6 người bằng võ.', type:'kill', mob:'bandao', need:6, rew:{xp:9500, silver:720, mat:2} },
+  { id:'s_jy21', npc:'daosi',      map:'chungnam', reqLv:32, reqMain:17, name:'Thử Kiếm Thái Hư',         desc:'Thái Hư Kiếm Thánh trấn ải Chung Nam chờ đối thủ. Thắng ải để chứng tỏ kiếm đạo.', type:'kill', mob:'zb_cn4', need:1, rew:{xp:20000, silver:1600, mat:4} },
+  { id:'s_jy22', npc:'daosi',      map:'chungnam', reqLv:34, reqMain:18, name:'Đạo Tặc Giả Danh',         desc:'Kẻ giả danh đạo sĩ lừa đảo tín đồ quanh Chung Nam. Diệt 4 tên mạo danh.', type:'kill', mob:'duhiep1', need:4, rew:{xp:5400, silver:550} },
+  { id:'s_jy23', npc:'daosi',      map:'comoc',   reqLv:36, reqMain:18, name:'Thăm Hỏi Cổ Mộ',            desc:'Cổ Mộ phái truyền nhân mất tích nhiều năm — sang thăm Thủ Mộ Nhân hỏi thăm sức khỏe.', type:'talk', targetNpc:'thumo', need:1, rew:{xp:3500, silver:400} },
+  // ── Cổ Mộ Mật Thất (Thủ Mộ Nhân) ──
+  { id:'s_jy24', npc:'thumo',      map:'comoc',   reqLv:42, reqMain:19, name:'Ngọc Nữ Thất Tung',         desc:'Thị Nữ Cổ Mộ mất phương hướng tấn công khách lạ. Siêu độ 10 người.', type:'kill', mob:'thinu', need:10, rew:{xp:24000, silver:1500} },
+  { id:'s_jy25', npc:'thumo',      map:'comoc',   reqLv:45, reqMain:19, name:'Cơ Quan Thất Khống',        desc:'Cơ Quan Mộc Nhân thời xây mộ nổi điên. Phá 8 cỗ máy.', type:'kill', mob:'mocnhan', need:8, rew:{xp:24000, silver:1500, mat:3} },
+  { id:'s_jy26', npc:'thumo',      map:'comoc',   reqLv:48, reqMain:19, name:'Dơi Máu Ùa Về',             desc:'Huyết Biên Bức ùa ra khỏi mật thất mỗi đêm. Diệt 10 con.', type:'kill', mob:'huyetbat', need:10, rew:{xp:36000, silver:2100} },
+  { id:'s_jy27', npc:'thumo',      map:'comoc',   reqLv:50, reqMain:21, name:'Kẻ Dòm Ngó Mộ Địa',         desc:'Du hiệp tham bảo vật lẻn vào đào trộm mộ địa. Trừng trị 3 tên.', type:'kill', mob:'duhiep2', need:3, rew:{xp:16000, silver:1100} },
+  { id:'s_jy28', npc:'thumo',      map:'comoc',   reqLv:52, reqMain:21, name:'Tổ Sư Tỉnh Giấc',           desc:'Cổ Mộ Tổ Sư trấn ải thức tỉnh. Thắng ải để chứng minh tư cách kế thừa.', type:'kill', mob:'zb_cm4', need:1, rew:{xp:33000, silver:2400, mat:5} },
+  { id:'s_jy29', npc:'thumo',      map:'tuyettinh', reqLv:55, reqMain:22, name:'Bức Thư Tuyệt Tình',      desc:'Thủ Mộ Nhân có thư gửi Tuyệt Tình Môn Nhân — chuyện xưa chưa đoạn.', type:'talk', targetNpc:'ttmon', need:1, rew:{xp:12000, silver:900} },
+  // ── Tuyệt Tình Cốc (Tuyệt Tình Môn Nhân) ──
+  { id:'s_jy30', npc:'ttmon',      map:'tuyettinh', reqLv:62, reqMain:23, name:'Đệ Tử Mất Lý Trí',        desc:'Đệ tử trong cốc trúng Tình Hoa độc hóa cuồng. Giải thoát 10 người.', type:'kill', mob:'ttdetu', need:10, rew:{xp:51000, silver:2800} },
+  { id:'s_jy31', npc:'ttmon',      map:'tuyettinh', reqLv:65, reqMain:23, name:'Tình Hoa Nở Máu',         desc:'Tình Hoa Độc Yêu nở rộ khắp cốc. Diệt 8 con lấy nhụy hoa giải độc.', type:'kill', mob:'docyeu', need:8, rew:{xp:50000, silver:2700, mat:3} },
+  { id:'s_jy32', npc:'ttmon',      map:'tuyettinh', reqLv:68, reqMain:23, name:'Sát Thủ Của Cốc Chủ',     desc:'Cốc Chủ phái Hắc Y Sát Thủ thanh trừ dị nghị. Diệt 8 tên tự vệ.', type:'kill', mob:'satthuhy', need:8, rew:{xp:62000, silver:3200} },
+  { id:'s_jy33', npc:'ttmon',      map:'tuyettinh', reqLv:70, reqMain:25, name:'Tình Địch',               desc:'Du hiệp lỡ tình vào cốc quấy nhiễu đệ tử tu luyện. Đuổi diệt 4 tên.', type:'kill', mob:'duhiep2', need:4, rew:{xp:22000, silver:1400} },
+  { id:'s_jy34', npc:'ttmon',      map:'tuyettinh', reqLv:72, reqMain:25, name:'Cốc Chủ Thịnh Nộ',        desc:'Tuyệt Tình Cốc Chủ trấn ải giận dữ. Thắng ải để cốc được yên.', type:'kill', mob:'zb_tt4', need:1, rew:{xp:46000, silver:3200, mat:5} },
+  { id:'s_jy35', npc:'ttmon',      map:'mongco',  reqLv:75, reqMain:26, name:'Mật Tín Thảo Nguyên',       desc:'Đưa mật tín cho Nội Ứng trong doanh địch — đường đi ngàn dặm, cẩn thận.', type:'talk', targetNpc:'noiung', need:1, rew:{xp:28000, silver:1800} },
+  // ── Mông Cổ Đại Doanh (Nội Ứng) ──
+  { id:'s_jy36', npc:'noiung',     map:'mongco',  reqLv:82, reqMain:27, name:'Mắt Tai Kim Luân',          desc:'Thám Tử Mông Cổ — mắt tai của quốc sư — rình mò quân tình. Diệt 10 tên.', type:'kill', mob:'thamtu', need:10, rew:{xp:102000, silver:5000} },
+  { id:'s_jy37', npc:'noiung',     map:'mongco',  reqLv:85, reqMain:27, name:'Đoạt Cung Xạ',              desc:'Cung Thủ thảo nguyên bắn tỉa dân lành. Diệt 10 tên đoạt cung.', type:'kill', mob:'cungthu', need:10, rew:{xp:111000, silver:5400, mat:4} },
+  { id:'s_jy38', npc:'noiung',     map:'mongco',  reqLv:88, reqMain:27, name:'Thiết Kỵ Đột Kích',         desc:'Hắc Ám Kỵ Binh xung quanh doanh địa. Diệt 8 kỵ.', type:'kill', mob:'kybinh', need:8, rew:{xp:114000, silver:5500} },
+  { id:'s_jy39', npc:'noiung',     map:'mongco',  reqLv:90, reqMain:29, name:'Nội Gián Bại Lộ',           desc:'Ba đại hiệp đầu quân cho người Mông — nghĩa tử vi tình, diệt 3 tên phản bội.', type:'kill', mob:'duhiep3', need:3, rew:{xp:45000, silver:2600} },
+  { id:'s_jy40', npc:'noiung',     map:'mongco',  reqLv:92, reqMain:29, name:'Đại Hãn Xuất Trận',         desc:'Đột Thông Đại Hãn thân chinh. Thắng ải lay động cả thảo nguyên.', type:'kill', mob:'zb_mc4', need:1, rew:{xp:60000, silver:4200, mat:6} },
+  // ── Nhạn Môn Quan (Lão Tướng) ──
+  { id:'s_jy41', npc:'laotuong',   map:'nhanmon', reqLv:100, reqMain:31, name:'Biên Quan Huyết Chiến',    desc:'Đột Quyết Cuồng Binh ép sát quan ải. Diệt 10 tên giữ trận tuyến.', type:'kill', mob:'cuongbinh', need:10, rew:{xp:187000, silver:8800} },
+  { id:'s_jy42', npc:'laotuong',   map:'nhanmon', reqLv:103, reqMain:31, name:'Tu La Đạo',                desc:'Tu La Đao Khách — đạo tặc từng đồ sát cả trại — lộ diện Nhạn Môn. Diệt 8 tên.', type:'kill', mob:'daokhach', need:8, rew:{xp:180000, silver:8000, mat:5} },
+  { id:'s_jy43', npc:'laotuong',   map:'nhanmon', reqLv:106, reqMain:31, name:'Kỳ Lân Cuồng Hỏa',         desc:'Liệt Hỏa Kỳ Lân cuồng nộ thiêu rụi lương thảo. Thu phục 5 con.', type:'kill', mob:'kylan', need:5, rew:{xp:105000, silver:4700, mat:4} },
+  { id:'s_jy44', npc:'laotuong',   map:'nhanmon', reqLv:109, reqMain:32, name:'Giang Hồ Đại Loạn',        desc:'Đại hiệp các phái tụ tập Nhạn Môn tranh đoạt bí kíp. Dẹp loạn 4 kẻ.', type:'kill', mob:'duhiep3', need:4, rew:{xp:60000, silver:3300} },
+  { id:'s_jy45', npc:'laotuong',   map:'nhanmon', reqLv:112, reqMain:32, name:'Quan Chủ Tử Thủ',          desc:'Nhạn Môn Quan Chủ trấn ải cuối cùng. Thắng ải — thiên hạ thái bình.', type:'kill', mob:'zb_nm4', need:1, rew:{xp:75000, silver:5200, mat:8} },
+  { id:'s_jy46', npc:'laotuong',   map:'tuongduong', reqLv:115, reqMain:33, name:'Báo Tin Thắng Trận',    desc:'Về Tương Dương báo cho Quách Đại Hiệp tin biên quan đại thắng.', type:'talk', targetNpc:'quachtinh', need:1, rew:{xp:55000, silver:3500} },
+  // ── Bổ sung (đan xen các vùng) ──
+  { id:'s_jy47', npc:'duocsu',     map:'daohoa',  reqLv:10, reqMain:0,  name:'Lông Cáo Nhuộm Dược',       desc:'Dược Sư cần lông Cáo Đỏ nhuộm dược tán. Săn 12 con.', type:'kill', mob:'caodo', need:12, rew:{xp:1350, silver:200, mat:2} },
+  { id:'s_jy48', npc:'quachtinh',  map:'daohoa',  reqLv:17, reqMain:12, name:'Thuốc Cho Thương Binh',     desc:'Hái 12 Thảo Dược về Tương Dương cứu thương binh nặng.', type:'collect', need:12, rew:{xp:2000, silver:300, mat:2} },
+  { id:'s_jy49', npc:'monkhach',   map:'ngoai',   reqLv:14, reqMain:10, name:'Tuấn Mã Cho Tân Binh',      desc:'Bắt 3 Tuấn Mã Hoang ngoại ô trang bị cho tân binh thủ thành (rượt kiệt sức rồi bấm E).', type:'catch', need:3, rew:{xp:1800, silver:350, thau:1} },
+  { id:'s_jy50', npc:'noiung',     map:'mongco',  reqLv:95, reqMain:30, name:'Nghiệt Kỵ',                 desc:'Hắc Ám Kỵ Binh tàn dư còn rảo quanh doanh trại cũ. Diệt 12 kỵ quét sạch.', type:'kill', mob:'kybinh', need:12, rew:{xp:171000, silver:8200, mat:5} },
+);
 
 function sideActive(){ return Object.keys(sideStates).filter(id => sideStates[id].st === 'active' || sideStates[id].st === 'done'); }
 function sideAvail(q){
@@ -8941,7 +9002,7 @@ window.ttAct = function(act, arg){
   } else if (act === 'luandao'){
     rel.luandao = true;
     const tp = VOHOC_DEFS[n.tp];
-    if (vhLearned(n.tp)){ player.bikipVH = (player.bikipVH || 0) + 2; say(`Hai ngườ​i luận đạo suốt đêm — tâm pháp đã thông, ${n.name} tặng thêm 2 📜 Bí Kíp.`); }
+    if (vhLearned(n.tp)){ player.bikipVH = (player.bikipVH || 0) + 2; say(`Hai người luận đạo suốt đêm — tâm pháp đã thông, ${n.name} tặng thêm 2 📜 Bí Kíp.`); }
     else { player.vohoc[n.tp] = true; say(`${n.name} truyền thụ gia bảo: 【${tp.name}】— ${tp.desc}`); zoneBanner = { text:'📖 LUẬN ĐẠO NGỘ PHÁP', sub:`Lĩnh hội ${tp.name} — tâm pháp gia truyền của ${n.name}`, color:'#5ac8b8', t:4.5 }; }
     rel.score = clamp(rel.score + 10, -100, 1000);
     calcDerived(); AudioSys.sfx('levelup', 0.9);
