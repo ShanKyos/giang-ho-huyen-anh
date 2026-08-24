@@ -1,0 +1,12 @@
+# GHHA — loại khỏi git
+.env
+.env.local
+.env.*.local
+*.local
+node_modules/
+dist/
+.vercel/
+
+# Assets nặng + OST bản quyền (không đưa lên repo)
+public/game/assets/music/
+public/game/assets/video/

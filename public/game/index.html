@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Giang Hồ Huyễn Ảnh — Huyễn Ảnh Chí Tôn (PvE Webgame)</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚔️</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,700;0,900;1,500&family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<!-- HUD -->
+<div id="hud" class="hidden">
+  <div id="hud-left">
+    <div id="hud-name">—</div>
+    <div class="bar hp"><div id="bar-hp" class="fill"></div><span id="txt-hp"></span></div>
+    <div class="bar qi"><div id="bar-qi" class="fill"></div><span id="txt-qi"></span></div>
+    <div class="bar xp"><div id="bar-xp" class="fill"></div><span id="txt-xp"></span></div>
+    <div id="hud-khi">Chân Khí: 0</div>
+    <div id="hud-potion" title="Hồ Lô Thuốc — hồi 40% máu (phím R)">🧪 x0 (R)</div>
+    <div id="hud-buff" title="Rượu Hổ Cốt — tạm thời +12% công lực" style="display:none">🍶</div>
+    <div id="hud-loidon" title="Lôi Độn Phù — giảm 40% sát thương thiên lôi" style="display:none">⚡</div>
+    <div id="hud-time" title="Lịch Tu Tiên">🌸 Xuân · 1/1 · Năm 1 · Canh Thìn</div>
+  </div>
+  <div id="hud-map"></div>
+  <div id="hud-right">
+    <div id="hud-silver">◈ 0</div>
+    <div id="hud-mat">✦ 0</div>
+    <button id="btn-pk" class="hbtn pk-off hidden" title="Bật/tắt chế độ PK">PK: Tắt</button>
+    <button id="btn-auto" class="hbtn auto-off hidden" title="Auto farm — treo máy: tự đánh quái & tung kỹ năng quanh điểm neo, tối đa 1-2 bãi (Z)">⚔ AUTO</button>
+    <div class="hud-btns">
+      <button class="hbtn" id="btn-char" title="Nhân vật (C) — Thú cưỡi · Đan điền · Rèn · Tuyệt học">Nhân</button>
+      <button class="hbtn" id="btn-inv" title="Trang bị (I)">Trang</button>
+      <button class="hbtn" id="btn-bag" title="Túi đồ (B)">Túi</button>
+      <button class="hbtn" id="btn-skill" title="Kỹ năng (K)">Kỹ</button>
+      <button class="hbtn" id="btn-map" title="Bản đồ thế giới (M)">Đồ</button>
+      <button class="hbtn" id="btn-music" title="Nhạc nền">♪</button>
+      <button class="hbtn" id="btn-qlog" title="Nhật ký nhiệm vụ (Q)">📜</button>
+      <button class="hbtn" id="btn-settings" title="Cài đặt (O)">⚙</button>
+    </div>
+    <div id="minimap-wrap">
+      <canvas id="minimap" width="200" height="146" title="Bản đồ thu nhỏ (U)"></canvas>
+      <button id="btn-minimap" title="Ẩn/hiện bản đồ thu nhỏ (U)">🗺</button>
+    </div>
+    <div id="quest-tracker"></div>
+  </div>
+  <div id="hint-bar"></div>
+</div>
+
+
+<!-- Taskbar kỹ năng: đánh thường + 5 ô gán chiêu -->
+<div id="skillbar" class="hidden">
+  <button class="skill" id="sk-basic"><span class="sk-ico">⚔</span><span class="sk-key">Space</span><span class="sk-cd"></span></button>
+  <button class="skill sk-slot" data-slot="0" id="sk-0"><span class="sk-ico">+</span><span class="sk-key">1</span><span class="sk-cd"></span></button>
+  <button class="skill sk-slot" data-slot="1" id="sk-1"><span class="sk-ico">+</span><span class="sk-key">2</span><span class="sk-cd"></span></button>
+  <button class="skill sk-slot" data-slot="2" id="sk-2"><span class="sk-ico">+</span><span class="sk-key">3</span><span class="sk-cd"></span></button>
+  <button class="skill sk-slot" data-slot="3" id="sk-3"><span class="sk-ico">+</span><span class="sk-key">4</span><span class="sk-cd"></span></button>
+  <button class="skill sk-slot" data-slot="4" id="sk-4"><span class="sk-ico">+</span><span class="sk-key">5</span><span class="sk-cd"></span></button>
+  <button class="skill locked" id="sk-jump" title="Lăng Ba Vi Bộ — Đan Điền cảnh 7 (J)"><span class="sk-ico">凌</span><span class="sk-key">J</span><span class="sk-cd"></span></button>
+</div>
+
+<!-- Joystick (touch) -->
+<div id="joystick" class="hidden"><div id="joy-knob"></div></div>
+
+<!-- Panels -->
+<div id="panel-char" class="panel hidden"></div>
+<div id="panel-inv" class="panel hidden"></div>
+<div id="panel-bag" class="panel hidden"></div>
+<div id="panel-skill" class="panel hidden"></div>
+<div id="panel-map" class="panel hidden"></div>
+<div id="panel-settings" class="panel hidden"></div>
+<div id="panel-qlog" class="panel hidden"></div>
+<div id="panel-quest" class="panel hidden"></div>
+<div id="panel-relation" class="panel hidden"></div>
+
+<!-- Cốt truyện dẫn nhập -->
+<div id="intro-story" class="hidden">
+  <div class="is-inner">
+    <div class="is-frame">
+      <div id="is-page" class="is-page"></div>
+      <div class="is-nav">
+        <button id="is-skip" class="is-skip">Bỏ qua ▸▸</button>
+        <button id="is-next" class="big-btn">Tiếp ▸</button>
+      </div>
+      <label id="max-mode-intro" style="display:none"><input type="checkbox" id="chk-max-intro"> 🧪 Chế độ thử nghiệm — vào game cấp 100, full trang bị &amp; mọi tính năng mở sẵn</label>
+    </div>
+  </div>
+</div>
+
+<!-- Hướng dẫn tân thủ -->
+<div id="tut-hint" class="hidden"></div>
+<div id="hint-toast" class="hidden"></div>
+
+<!-- Sect select -->
+<div id="sect-select" class="hidden">
+  <div class="ss-inner">
+    <h1>Giang Hồ Huyễn Ảnh</h1>
+    <h2>Huyễn Ảnh Chí Tôn · PvE</h2>
+    <p class="ss-sub">Chọn môn phái để bắt đầu hành trình — 7 môn phái ngũ hành · Đan Điền · Kinh Mạch · Tuyệt Học · Thú Chiến</p>
+    <button id="btn-sect-video" class="qz-shuffle" style="margin-bottom:10px">🎬 Xem Video Giới Thiệu Bát Phái (90s)</button>
+    <div id="sect-cards"></div>
+    <label id="max-mode" style="display:none"><input type="checkbox" id="chk-max"> Chế độ thử nghiệm — bắt đầu cấp 60, đầy đủ trang bị &amp; vật liệu</label>
+    <button id="btn-continue" class="big-btn hidden">Tiếp Tục Hành Trình</button>
+  </div>
+</div>
+
+<!-- Quẻ Tiên Thiên: gacha tính cách & tiềm năng đầu game -->
+<div id="quze-screen" class="hidden">
+  <div class="ss-inner qz-inner qz-wide">
+    <h1>☯ Quẻ Tiên Thiên</h1>
+    <p class="ss-sub">Trờ​i sinh tính, đất dưỡng tài — mườ​i sáu quẻ úp sấp giữa càn khôn.<br><b style="color:#f0d68a">Bấm để lật quẻ</b>, đọc vận mệnh kiếp này, rồi <b style="color:#f0d68a">chọn đúng 3 quẻ</b> mang vào đờ​i!</p>
+    <div id="quze-picked"></div>
+    <div id="quze-board"></div>
+    <div class="qz-board-actions"><button id="btn-quze-shuffle" class="qz-shuffle">🀄 Xáo Lại Bàn Quẻ</button></div>
+    <div class="qz-pers-label">— Chọn tính cách —</div>
+    <div id="quze-pers"></div>
+    <div class="qz-pers-label">— Danh Tính Giang Hồ —</div>
+    <div class="qz-name">
+      <input id="inp-char-name" maxlength="24" placeholder="Tên nhân vật của bạn..." autocomplete="off">
+      <button id="btn-name-random" title="Gieo quẻ đặt tên">🎲</button>
+    </div>
+    <button id="btn-quze-go" class="big-btn">Bắt Đầu Hành Trình</button>
+    <label id="max-mode-quze" style="display:none"><input type="checkbox" id="chk-max-quze"> 🧪 Chế độ thử nghiệm — vào game cấp 100, full trang bị &amp; mọi tính năng mở sẵn</label>
+  </div>
+</div>
+
+<!-- Bái Sư Nhập Phái: Tán Nhân chọn môn phái ở cấp 10 -->
+<div id="sect-ceremony" class="hidden">
+  <div class="ss-inner">
+    <h1>Bái Sư Nhập Phái</h1>
+    <p class="ss-sub">Mười cấp lang bạt đã đủ danh tiếng — 7 môn phái cùng mở cửa thu nhận.<br>Chọn một, con đường võ học của ngươi sẽ đổi thay mãi mãi.</p>
+    <button id="btn-sect-video2" class="qz-shuffle" style="margin-bottom:10px">🎬 Xem Video Giới Thiệu Bát Phái (90s)</button>
+    <div id="ceremony-cards"></div>
+    <button id="btn-ceremony-later" class="big-btn" style="opacity:.75;font-size:14px">Để Sau — Ta Còn Muốn Lang Bạt</button>
+  </div>
+</div>
+
+<!-- Overlays -->
+<div id="boss-talk" class="hidden"></div>
+<div id="th-celebrate" class="hidden"></div>
+<div id="cheat-console" class="hidden"><div id="cheat-log"></div><input id="cheat-input" placeholder="/help — lenh playtest" autocomplete="off" onkeydown="if(event.key==='Enter'){cheatExec(this.value);this.value='';}if(event.key==='Escape'){toggleCheatConsole();}"></div>
+<div id="overlay" class="hidden"><div id="overlay-inner"></div></div>
+
+<!-- Video giới thiệu Bát Đại Môn Phái -->
+<div id="sect-video-overlay" class="hidden" style="position:fixed;inset:0;z-index:999;background:rgba(6,5,3,.96);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px">
+  <video id="sect-video" src="assets/video/sect_intro.mp4" style="max-width:92vw;max-height:78vh;border:1px solid rgba(201,162,39,.5);border-radius:10px;box-shadow:0 0 40px rgba(0,0,0,.8)" controls playsinline></video>
+  <button id="btn-sect-video-skip" class="big-btn" style="padding:8px 26px">Bỏ Qua ▶</button>
+</div>
+<script>window.RELEASE_BUILD = true;</script>
+<script src="lang.js"></script>
+<script src="game.js"></script>
+</body>
+</html>

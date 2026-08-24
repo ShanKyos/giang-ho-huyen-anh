@@ -1,0 +1,480 @@
+/* ===== Giang Hồ Huyễn Ảnh — Ink-wash UI ===== */
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html,body { width:100%; height:100%; overflow:hidden; background:#1a1712;
+  font-family: 'Be Vietnam Pro', 'Segoe UI', sans-serif; user-select:none; }
+#game { position:fixed; inset:0; display:block; touch-action:none; }
+.hidden { display:none !important; }
+
+/* HUD */
+#hud { position:fixed; inset:0; pointer-events:none; z-index:10; }
+#hud-left { position:absolute; top:12px; left:12px; width:min(280px,44vw); }
+#hud-name { color:#f5edd8; font-size:15px; letter-spacing:1px; text-shadow:0 1px 3px #000; margin-bottom:5px; }
+.bar { position:relative; height:16px; margin-bottom:4px; background:rgba(10,8,5,.72);
+  border:1px solid rgba(220,200,150,.5); border-radius:3px; overflow:hidden; }
+.bar .fill { height:100%; width:100%; transition:width .18s; }
+.bar span { position:absolute; inset:0; font-size:10px; line-height:16px; text-align:center;
+  color:#fff; text-shadow:0 1px 2px #000; letter-spacing:.5px; }
+.bar.hp .fill { background:linear-gradient(180deg,#c0392b,#7e1f14); }
+.bar.qi .fill { background:linear-gradient(180deg,#3a7bd5,#1d3f73); }
+.bar.xp { height:10px; } .bar.xp span { line-height:10px; font-size:8px; }
+.bar.xp .fill { background:linear-gradient(180deg,#c9a227,#7a5f13); }
+#hud-right { position:absolute; top:12px; right:12px; text-align:right; pointer-events:auto;
+  display:flex; flex-direction:column; align-items:flex-end; gap:5px; }
+#hud-silver,#hud-mat { color:#f5edd8; font-size:13px; text-shadow:0 1px 3px #000; }
+#hud-mat { color:#9fd0ff; }
+.hud-btns { margin-top:2px; }
+.hbtn { pointer-events:auto; background:rgba(20,16,10,.85); color:#e8d9b0; border:1px solid rgba(220,200,150,.55);
+  padding:6px 11px; margin-left:5px; border-radius:4px; font-family:inherit; font-size:12px; cursor:pointer; }
+.hbtn:hover { background:rgba(60,48,28,.9); }
+
+/* Quest tracker — nằm trong luồng cột phải, dưới minimap */
+#quest-tracker { width:min(230px,42vw);
+  background:rgba(15,12,8,.68); border:1px solid rgba(220,200,150,.4); border-left:3px solid #c9a227;
+  border-radius:3px; padding:8px 10px; color:#e8d9b0; font-size:12px; line-height:1.5; text-align:left; }
+#quest-tracker .q-title { color:#f0d68a; font-size:13px; margin-bottom:2px; }
+#quest-tracker .q-done { color:#8fd18f; }
+
+/* Mục Tiêu Hôm Nay — checklist nhỏ dưới quest tracker */
+#quest-tracker .q-daily { margin-top:8px; padding-top:6px; border-top:1px dashed rgba(126,200,80,.35); }
+#quest-tracker .q-daily .q-title { color:#7ec850; font-size:12px; }
+#quest-tracker .q-daily-row { font-size:11px; color:#cfc8b8; display:flex; justify-content:space-between; gap:6px; }
+#quest-tracker .q-daily-row.done { color:#8fd18f; opacity:.85; }
+#quest-tracker .q-daily-row b { color:#f0d68a; font-weight:600; }
+
+/* Hint bar */
+#hint-bar { position:absolute; bottom:96px; left:50%; transform:translateX(-50%);
+  color:#f0e6c8; background:rgba(15,12,8,.7); padding:5px 16px; border-radius:14px;
+  font-size:12px; border:1px solid rgba(220,200,150,.35); white-space:nowrap; }
+
+/* Skill bar */
+#skillbar { position:fixed; bottom:14px; right:14px; display:flex; gap:8px; z-index:11; }
+.skill { position:relative; width:56px; height:56px; border-radius:8px; cursor:pointer;
+  background:rgba(20,16,10,.85); border:1px solid rgba(220,200,150,.55); color:#e8d9b0;
+  font-family:inherit; overflow:hidden; }
+.skill .sk-ico { display:block; font-size:20px; line-height:34px; }
+.skill .sk-key { display:block; font-size:9px; opacity:.7; }
+.skill .sk-cd { position:absolute; left:0; bottom:0; width:100%; height:0%; background:rgba(0,0,0,.65); pointer-events:none; }
+.skill.locked { opacity:.38; filter:grayscale(.8); }
+.skill:active { transform:scale(.94); }
+.skill.flash { box-shadow:0 0 14px #f0d68a; }
+
+/* Joystick */
+#joystick { position:fixed; bottom:22px; left:22px; width:110px; height:110px; z-index:11;
+  border-radius:50%; background:rgba(20,16,10,.4); border:1px solid rgba(220,200,150,.4); }
+#joy-knob { position:absolute; left:35px; top:35px; width:40px; height:40px; border-radius:50%;
+  background:rgba(232,217,176,.75); box-shadow:0 2px 6px rgba(0,0,0,.5); }
+
+/* Panels */
+.panel { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); z-index:20;
+  width:min(520px,94vw); max-height:86vh; overflow-y:auto;
+  background:linear-gradient(170deg,#241d12,#171208); border:1px solid rgba(220,200,150,.6);
+  border-radius:8px; padding:16px 18px; color:#e8d9b0; box-shadow:0 10px 40px rgba(0,0,0,.7); }
+.panel h3 { font-family:'Playfair Display', 'Noto Serif', serif; font-weight:700;  color:#f0d68a; letter-spacing:2px; margin-bottom:10px; font-size:17px;
+  border-bottom:1px solid rgba(220,200,150,.3); padding-bottom:6px; }
+.panel .close-x { position:absolute; top:6px; right:8px; background:rgba(0,0,0,.35); border:1px solid rgba(220,200,150,.45);
+  border-radius:6px; width:34px; height:34px; line-height:1; z-index:2;
+  color:#e8d9b0; font-size:18px; cursor:pointer; }
+.panel .close-x:hover { background:rgba(160,48,40,.5); color:#fff; }
+.attr-row, .stat-row { display:flex; justify-content:space-between; align-items:center;
+  padding:5px 2px; font-size:13px; border-bottom:1px dashed rgba(220,200,150,.15); }
+.attr-row .plus-btn { width:26px; height:26px; border-radius:4px; border:1px solid #c9a227;
+  background:rgba(201,162,39,.15); color:#f0d68a; font-size:16px; cursor:pointer; }
+.attr-row .plus-btn:disabled { opacity:.3; cursor:default; }
+.stat-sec { margin-top:10px; color:#b8a878; font-size:12px; letter-spacing:1px; }
+
+.slot-row, .inv-item { display:flex; justify-content:space-between; align-items:center;
+  padding:6px 8px; margin:4px 0; background:rgba(255,250,235,.05); border-radius:4px;
+  border:1px solid rgba(220,200,150,.18); cursor:pointer; font-size:12.5px; }
+.slot-row:hover, .inv-item:hover { background:rgba(255,250,235,.12); }
+.slot-row .s-name, .inv-item .s-name { flex:1; }
+.r0{color:#b9b9b9}.r1{color:#5fc96e}.r2{color:#5ea0e8}.r3{color:#c07fe0}.r4{color:#f39c3d}
+.item-tip { font-size:11px; opacity:.85; line-height:1.5; margin-top:2px; }
+.mini-btn { background:rgba(201,162,39,.18); color:#f0d68a; border:1px solid #c9a227;
+  border-radius:4px; padding:4px 10px; font-size:11.5px; cursor:pointer; font-family:inherit; margin-left:6px;}
+.mini-btn:hover { background:rgba(201,162,39,.35); }
+.mini-btn:disabled { opacity:.35; cursor:default; }
+
+/* Forge */
+.forge-lines { background:rgba(255,250,235,.05); border:1px solid rgba(220,200,150,.2);
+  border-radius:5px; padding:10px 12px; margin:10px 0; font-size:12.5px; line-height:1.7; }
+.forge-actions { text-align:center; margin-top:10px; }
+#forge-msg { text-align:center; min-height:18px; font-size:12.5px; margin-top:8px; }
+
+/* Mount & Dantian panels */
+.mount-img { display:block; width:min(230px,58vw); margin:6px auto; filter:drop-shadow(0 6px 10px rgba(0,0,0,.45)); }
+.mount-name { text-align:center; font-size:17px; letter-spacing:2px; margin:4px 0; }
+.tier-pips { text-align:center; letter-spacing:4px; font-size:13px; margin-bottom:8px; }
+.realm-ring { text-align:center; margin:8px 0; }
+.realm-ring .realm-name { font-size:19px; letter-spacing:4px; color:#9fd0ff; }
+.tuvi-bar { position:relative; height:14px; background:rgba(10,8,5,.72); border:1px solid rgba(159,208,255,.4);
+  border-radius:3px; overflow:hidden; margin:8px 0; }
+.tuvi-bar .fill { height:100%; background:linear-gradient(180deg,#5ea0e8,#1d3f73); transition:width .2s; }
+.tuvi-bar span { position:absolute; inset:0; font-size:10px; line-height:14px; text-align:center; color:#fff; text-shadow:0 1px 2px #000; }
+.bonus-list { background:rgba(159,208,255,.07); border:1px solid rgba(159,208,255,.25); border-radius:5px;
+  padding:8px 12px; font-size:12.5px; line-height:1.7; margin:8px 0; }
+.next-tier { border:1px dashed rgba(240,214,138,.4); border-radius:5px; padding:8px 12px; margin-top:8px; font-size:12.5px; }
+#mount-msg, #dantian-msg { text-align:center; min-height:18px; font-size:12.5px; margin-top:8px; }
+
+/* Sect select */
+#sect-select { position:fixed; inset:0; z-index:30; display:flex; align-items:center; justify-content:center;
+  background:radial-gradient(ellipse at 50% 30%, #2e2718 0%, #14100a 70%); overflow-y:auto; }
+/* Bái Sư Nhập Phái — chọn môn phái trong game ở cấp 10 */
+#sect-ceremony { position:fixed; inset:0; z-index:35; display:flex; align-items:center; justify-content:center;
+  background:radial-gradient(ellipse at 50% 30%, rgba(46,39,24,.97) 0%, rgba(16,12,7,.97) 70%); overflow-y:auto; }
+#ceremony-cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:14px; }
+#sect-ceremony .big-btn { margin-top:18px; }
+.ss-inner { text-align:center; padding:30px 16px; max-width:860px; }
+.ss-inner h1 { font-family:'Playfair Display', 'Noto Serif', serif; font-weight:900;  color:#f0d68a; font-size:clamp(30px,6vw,52px); letter-spacing:8px; }
+.ss-inner h2 { color:#b8a878; font-size:clamp(13px,2.4vw,18px); letter-spacing:5px; font-weight:normal; margin-top:6px; }
+.ss-sub { color:#8d8060; font-size:13px; margin:14px 0 24px; }
+#sect-cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:14px; }
+.sect-card { background:linear-gradient(170deg,rgba(255,250,235,.06),rgba(255,250,235,.02));
+  border:1px solid rgba(220,200,150,.35); border-radius:10px; padding:18px 12px; cursor:pointer;
+  color:#e8d9b0; transition:all .15s; }
+.sect-card:hover { transform:translateY(-4px); border-color:#f0d68a; box-shadow:0 8px 26px rgba(0,0,0,.6); }
+.sect-card .glyph { font-size:38px; margin-bottom:8px; }
+.sect-card .portrait { width:100%; height:150px; object-fit:contain; object-position:bottom;
+  filter:drop-shadow(0 4px 8px rgba(0,0,0,.5)); margin-bottom:6px; }
+.skill.has-img { background-size:cover; background-position:center; }
+.skill.has-img .sk-ico { display:none; }
+.skill .sk-key { position:absolute; bottom:1px; right:3px; text-shadow:0 1px 2px #000; }
+.char-portrait { display:block; width:120px; margin:0 auto 6px; filter:drop-shadow(0 4px 8px rgba(0,0,0,.5)); }
+.sect-card .s-title { font-size:17px; letter-spacing:2px; margin-bottom:4px; }
+.sect-card .s-role { font-size:11px; color:#b8a878; margin-bottom:8px; }
+.sect-card .s-desc { font-size:11.5px; line-height:1.55; opacity:.85; }
+#max-mode { display:inline-block; margin-top:22px; color:#b8a878; font-size:13px; cursor:pointer; }
+#max-mode input { accent-color:#c9a227; margin-right:6px; vertical-align:-2px; }
+#max-mode-quze { display:block; margin-top:16px; color:#b8a878; font-size:13px; cursor:pointer; }
+#max-mode-quze input { accent-color:#c9a227; margin-right:6px; vertical-align:-2px; }
+#max-mode-intro { display:block; margin-top:14px; color:#b8a878; font-size:13px; cursor:pointer; text-align:center; }
+#max-mode-intro input { accent-color:#c9a227; margin-right:6px; vertical-align:-2px; }
+.big-btn { margin-top:26px; background:rgba(201,162,39,.2); border:1px solid #c9a227; color:#f0d68a;
+  padding:12px 34px; font-size:16px; letter-spacing:3px; border-radius:6px; cursor:pointer; font-family:inherit; }
+.big-btn:hover { background:rgba(201,162,39,.4); }
+
+/* Overlay */
+#overlay { position:fixed; inset:0; z-index:40; background:rgba(8,6,3,.82);
+  display:flex; align-items:center; justify-content:center; }
+#overlay-inner { text-align:center; color:#e8d9b0; padding:30px; max-width:560px; }
+#overlay-inner h2 { font-family:'Playfair Display', 'Noto Serif', serif; font-weight:700;  color:#f0d68a; letter-spacing:4px; font-size:28px; margin-bottom:14px; }
+#overlay-inner p { font-size:14px; line-height:1.8; margin-bottom:20px; }
+/* ── Khung phẩm chất + ấn giai cho icon trang bị (Drop v2.0) ── */
+.item-ic { position:relative; display:inline-flex; align-items:center; justify-content:center;
+  width:38px; height:38px; border-radius:6px; border:1.5px solid rgba(185,185,185,.45);
+  background:rgba(10,8,4,.35); flex:0 0 auto; }
+.item-ic img { width:82%; height:82%; object-fit:contain; pointer-events:none; }
+.item-ic.ic-r1 { border-color:rgba(95,201,110,.7); box-shadow:0 0 6px rgba(95,201,110,.25); }
+.item-ic.ic-r2 { border-color:rgba(94,160,232,.8); box-shadow:0 0 7px rgba(94,160,232,.3); }
+.item-ic.ic-r3 { border-color:rgba(192,127,224,.85); box-shadow:0 0 8px rgba(192,127,224,.35); }
+.item-ic.ic-r4 { border-color:rgba(243,156,61,.95); box-shadow:0 0 10px rgba(243,156,61,.45); }
+.ic-giai { position:absolute; bottom:-4px; right:-4px; font-style:normal; font-size:8.5px; font-weight:700;
+  line-height:1; padding:2px 3px; border-radius:4px; color:#1a1408; background:linear-gradient(180deg,#f0d68a,#c9a84c);
+  box-shadow:0 1px 3px rgba(0,0,0,.6); letter-spacing:.5px; }
+.bag-cell .item-ic { width:100%; height:100%; border:none; background:transparent; box-shadow:none; }
+.bag-cell .item-ic img { width:78%; height:78%; }
+
+/* ── Thanh thoại trấn thủ (Cốt truyện Ngũ Ấn) ── */
+#boss-talk { position:fixed; left:50%; bottom:86px; transform:translateX(-50%); z-index:15;
+  max-width:min(560px, 88vw); pointer-events:none; text-align:center;
+  background:linear-gradient(180deg, rgba(20,8,8,.88), rgba(8,4,4,.92));
+  border:1px solid rgba(200,72,72,.5); border-radius:10px; padding:10px 18px;
+  box-shadow:0 4px 24px rgba(0,0,0,.6), inset 0 0 18px rgba(160,40,40,.15);
+  animation:btIn .35s ease; }
+@keyframes btIn { from { opacity:0; transform:translateX(-50%) translateY(10px); } to { opacity:1; transform:translateX(-50%); } }
+#boss-talk .bt-name { display:block; font-family:'Playfair Display','Noto Serif',serif; font-weight:700;
+  color:#ff7a5c; letter-spacing:2px; font-size:13px; margin-bottom:3px; }
+#boss-talk .bt-line { font-family:'Noto Serif',serif; font-style:italic; color:#f2e6cc; font-size:13.5px; line-height:1.55; }
+/* ── Tuyệt Học: sprite theo tầng + hiệu ứng tấn chức ── */
+.th-roster { display:flex; gap:5px; justify-content:center; margin:8px 0 10px; }
+.th-roster img { width:34px; height:34px; border-radius:6px; border:1.5px solid rgba(232,217,176,.2);
+  background:rgba(10,8,4,.4); object-fit:contain; padding:2px; opacity:.35; filter:grayscale(.7); transition:all .25s; }
+.th-roster img.on { opacity:1; filter:none; }
+.th-cur-icon { width:58px; height:58px; vertical-align:-20px; margin-right:8px; }
+.th-next-icon { width:38px; height:38px; vertical-align:-13px; margin-right:7px; }
+#th-celebrate { position:fixed; left:50%; top:38%; transform:translate(-50%,-50%); z-index:60; pointer-events:none; text-align:center; }
+#th-celebrate img { width:150px; height:150px; object-fit:contain; filter:drop-shadow(0 0 26px rgba(240,214,138,.8)); }
+#th-celebrate .thc-name { font-family:'Playfair Display','Noto Serif',serif; font-weight:700; font-size:24px; letter-spacing:3px; text-shadow:0 2px 10px #000; margin-top:4px; }
+#th-celebrate .thc-sub { color:#e8dcc0; font-size:13px; letter-spacing:2px; opacity:.85; }
+#th-celebrate.thc-anim { animation:thcPop 1.8s ease forwards; }
+
+/* ── Playtest cheat console (chỉ TEST_MODE ?test=1) ── */
+#cheat-console { position:fixed; top:14px; left:14px; z-index:70; width:380px;
+  background:rgba(8,10,16,.93); border:1px solid rgba(127,212,255,.4); border-radius:8px; padding:8px 10px;
+  font-family:ui-monospace, Consolas, monospace; font-size:12px; color:#cfe8ff;
+  box-shadow:0 6px 24px rgba(0,0,0,.6); }
+#cheat-log div { line-height:1.55; white-space:pre-wrap; }
+#cheat-input { width:100%; margin-top:6px; background:rgba(255,255,255,.08);
+  border:1px solid rgba(127,212,255,.35); border-radius:5px; color:#fff;
+  padding:6px 8px; font-family:inherit; font-size:12px; outline:none; box-sizing:border-box; }
+
+@keyframes thcPop { 0% { opacity:0; transform:translate(-50%,-50%) scale(.4); }
+  18% { opacity:1; transform:translate(-50%,-50%) scale(1.12); }
+  30% { transform:translate(-50%,-50%) scale(1); }
+  78% { opacity:1; } 100% { opacity:0; transform:translate(-50%,-56%) scale(1.05); } }
+
+
+
+/* Quest dialog list */
+.qd-quest { background:rgba(255,250,235,.06); border:1px solid rgba(220,200,150,.3);
+  border-radius:6px; padding:12px; margin:8px 0; text-align:left; font-size:13px; line-height:1.6; }
+.qd-quest .q-name { color:#f0d68a; font-size:14px; margin-bottom:4px; }
+.qd-quest .q-rew { color:#9fd0ff; font-size:11.5px; margin-top:6px; }
+
+@media (max-width:720px){
+  .skill { width:50px; height:50px; }
+  #quest-tracker { font-size:11px; }
+  #minimap { width:150px; height:110px; }
+  #hint-bar { bottom:120px; font-size:11px; max-width:92vw; white-space:normal; text-align:center; }
+}
+
+/* ===== v2: HUD mở rộng ===== */
+#hud-khi { color:#9fd0ff; font-size:11.5px; text-shadow:0 1px 3px #000; margin-top:2px; letter-spacing:.5px; }
+#hud-time { font-size:11.5px; text-shadow:0 1px 3px #000; margin-top:3px; letter-spacing:.5px; color:#f0a8c0;
+  background:rgba(10,8,6,.38); border:1px solid rgba(240,214,138,.28); border-radius:8px; padding:2px 8px; display:inline-block; }
+#hud-buff { color:#f0c88a; font-size:11.5px; text-shadow:0 1px 3px #000; margin-top:2px; letter-spacing:.5px; }
+#hud-loidon { color:#e8c84a; font-size:11.5px; text-shadow:0 1px 3px #000; margin-top:2px; letter-spacing:.5px; }
+#hud-name .title-tag { color:#f0d68a; }
+#hud-name.toiac { color:#ff5a4a; }
+#hud-map { position:absolute; top:12px; left:50%; transform:translateX(-50%); text-align:center;
+  color:#f5edd8; font-size:14px; letter-spacing:2px; text-shadow:0 1px 3px #000; }
+#hud-map .zone-badge { display:inline-block; margin-left:8px; font-size:10.5px; padding:2px 8px;
+  border-radius:9px; border:1px solid; letter-spacing:1px; vertical-align:2px; }
+#btn-pk { margin-top:4px; display:block; margin-left:auto; }
+#btn-pk.pk-on { background:rgba(160,40,30,.85); color:#ffd9d0; border-color:#e84a3a; }
+#btn-pk.pk-off { opacity:.85; }
+#btn-auto { margin-top:4px; display:block; margin-left:auto; }
+#btn-auto.auto-on { background:rgba(46,110,60,.9); color:#d8ffd0; border-color:#6ae88a; box-shadow:0 0 8px rgba(106,232,138,.5); animation:autoPulse 1.6s ease-in-out infinite; }
+#btn-auto.auto-off { opacity:.85; }
+@keyframes autoPulse { 0%,100%{ box-shadow:0 0 4px rgba(106,232,138,.35); } 50%{ box-shadow:0 0 12px rgba(106,232,138,.75); } }
+
+/* Taskbar kỹ năng */
+#skillbar { align-items:flex-end; }
+.skill .sk-ico { pointer-events:none; }
+.skill.sk-empty .sk-ico { opacity:.4; font-size:22px; }
+
+/* Tab trong khung Nhân Vật */
+.char-tabs { display:flex; gap:4px; flex-wrap:wrap; margin-bottom:12px; }
+.char-tabs button { flex:1; min-width:72px; background:rgba(20,16,10,.7); color:#b8a878;
+  border:1px solid rgba(220,200,150,.35); border-radius:5px; padding:7px 4px;
+  font-family:inherit; font-size:12px; cursor:pointer; letter-spacing:1px; }
+.char-tabs button.active { background:rgba(201,162,39,.25); color:#f0d68a; border-color:#c9a227; }
+.char-tabs button:hover { background:rgba(60,48,28,.9); }
+.char-tabs button.locked { opacity:.42; cursor:not-allowed; }
+.char-tabs button.locked:hover { background:rgba(20,16,10,.7); }
+
+/* Túi đồ dạng lưới có hình */
+.bag-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(64px,1fr)); gap:8px; margin-top:8px; }
+.bag-cell { position:relative; aspect-ratio:1; border-radius:6px; cursor:pointer;
+  background:rgba(255,250,235,.05); border:1px solid rgba(220,200,150,.25);
+  display:flex; align-items:center; justify-content:center; flex-direction:column; }
+.bag-cell:hover { background:rgba(255,250,235,.14); }
+.bag-cell img { width:78%; height:78%; object-fit:contain; pointer-events:none;
+  filter:drop-shadow(0 2px 4px rgba(0,0,0,.5)); }
+.bag-cell .bc-plus { position:absolute; top:2px; right:5px; font-size:10px; color:#f0d68a; text-shadow:0 1px 2px #000; }
+.bag-cell .bc-name { position:absolute; bottom:1px; left:0; right:0; text-align:center; font-size:9px;
+  color:#e8d9b0; text-shadow:0 1px 2px #000; white-space:nowrap; overflow:hidden; }
+.bag-cell.sel { border-color:#f0d68a; box-shadow:0 0 10px rgba(240,214,138,.4); }
+.bag-cell.rar-0 { border-color:rgba(185,185,185,.5); } .bag-cell.rar-1 { border-color:rgba(95,201,110,.65); }
+.bag-cell.rar-2 { border-color:rgba(94,160,232,.7); } .bag-cell.rar-3 { border-color:rgba(192,127,224,.75); }
+.bag-cell.rar-4 { border-color:rgba(243,156,61,.85); }
+.mat-row { display:flex; align-items:center; gap:10px; padding:5px 2px; font-size:12.5px;
+  border-bottom:1px dashed rgba(220,200,150,.15); }
+.mat-row img { width:30px; height:30px; object-fit:contain; }
+.slot-icon { width:34px; height:34px; object-fit:contain; margin-right:8px; vertical-align:middle;
+  filter:drop-shadow(0 2px 3px rgba(0,0,0,.5)); }
+.slot-row .s-name { display:flex; align-items:center; }
+
+/* Panel Bản Đồ */
+.map-row { display:flex; justify-content:space-between; align-items:center; gap:8px;
+  padding:8px; margin:6px 0; background:rgba(255,250,235,.05); border-radius:5px;
+  border:1px solid rgba(220,200,150,.2); font-size:12.5px; }
+.map-row .m-name { font-size:14px; color:#f0d68a; letter-spacing:1px; }
+.map-row .m-desc { font-size:11px; opacity:.75; margin-top:3px; line-height:1.5; }
+.map-row .m-side { text-align:right; min-width:110px; }
+.zone-badge { display:inline-block; font-size:10.5px; padding:2px 8px; border-radius:9px; border:1px solid; }
+
+/* Panel Kỹ Năng */
+.skill-row { display:flex; align-items:center; gap:10px; padding:7px 6px; margin:5px 0;
+  background:rgba(255,250,235,.05); border:1px solid rgba(220,200,150,.18); border-radius:5px; }
+.skill-row img, .skill-row .sk-glyph { width:40px; height:40px; border-radius:6px; object-fit:cover;
+  background:rgba(20,16,10,.8); border:1px solid rgba(220,200,150,.35); text-align:center; line-height:38px; font-size:19px; }
+.skill-row .sk-info { flex:1; font-size:12.5px; }
+.skill-row .sk-info .sk-desc { font-size:11px; opacity:.7; margin-top:2px; line-height:1.45; }
+.skill-row .assign-btns { display:flex; gap:3px; }
+.skill-row .assign-btns button { width:24px; height:24px; font-size:11px; padding:0; margin:0; }
+.skill-row.locked { opacity:.5; }
+
+/* NPC ảnh trong game vẽ bằng canvas — CSS cho dialog */
+.npc-shop-row { display:flex; justify-content:space-between; align-items:center; padding:7px 4px;
+  border-bottom:1px dashed rgba(220,200,150,.15); font-size:12.5px; }
+
+/* Đập Ngọc — khe ngọc trong bảng rèn */
+.gem-socket { display:flex; gap:10px; align-items:center; margin:8px 0; padding:8px 10px;
+  background:rgba(0,0,0,.35); border:1px solid rgba(232,74,106,.35); border-radius:8px; }
+.gem-socket img { width:40px; height:40px; flex:0 0 40px; image-rendering:auto;
+  filter:drop-shadow(0 0 6px rgba(232,74,106,.5)); }
+
+/* Lò Bát Quái — danh sách trang bị Phá Thiên Kiếp */
+.bagua-item { display:flex; justify-content:space-between; align-items:center; gap:8px;
+  padding:8px 6px; border-bottom:1px dashed rgba(232,176,74,.25); }
+.bagua-item-info { line-height:1.5; }
+
+/* ── Cốt truyện dẫn nhập ── */
+#intro-story { position:fixed; inset:0; z-index:200; display:flex; align-items:center; justify-content:center;
+  background:radial-gradient(ellipse at 50% 40%, #2a2418 0%, #14100a 70%, #0a0806 100%); }
+#intro-story.hidden { display:none; }
+.is-inner { max-width:640px; width:92%; }
+.is-frame { border:1px solid rgba(201,162,39,.45); border-radius:14px; padding:38px 44px;
+  background:linear-gradient(160deg, rgba(40,34,22,.92), rgba(20,16,10,.95));
+  box-shadow:0 0 60px rgba(201,162,39,.12), inset 0 0 40px rgba(0,0,0,.5); }
+.is-page { font-family:'Playfair Display', 'Noto Serif', serif; font-size:17px; line-height:2.05; color:#e8dcc0;
+  min-height:240px; animation:isFade .9s ease; white-space:pre-line; }
+.is-page b { color:#f0d68a; }
+.is-page .is-title { font-family:'Playfair Display', 'Noto Serif', serif; font-weight:900;  display:block; text-align:center; font-size:26px; color:#f0d68a; letter-spacing:8px; margin-bottom:18px; }
+.is-page i { color:#b8a878; }
+@keyframes isFade { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:none; } }
+.is-nav { display:flex; justify-content:space-between; align-items:center; margin-top:22px; }
+.is-skip { background:none; border:none; color:#8a7a58; cursor:pointer; font-size:13px; font-family:inherit; }
+.is-skip:hover { color:#c9b888; }
+
+/* ── Hướng dẫn tân thủ ── */
+#tut-hint { position:fixed; left:50%; bottom:118px; transform:translateX(-50%); z-index:120;
+  max-width:480px; padding:10px 16px; border-radius:10px; font-size:13.5px; line-height:1.6;
+  color:#f0e6c8; background:rgba(24,20,12,.92); border:1px solid #c9a227;
+  box-shadow:0 4px 18px rgba(0,0,0,.5), 0 0 14px rgba(201,162,39,.25); }
+#tut-hint.hidden { display:none; }
+#tut-hint b { color:#ffd76a; }
+#tut-hint .tut-x { float:right; margin-left:12px; cursor:pointer; color:#8a7a58; font-size:12px; }
+#tut-hint .tut-x:hover { color:#f0d68a; }
+#tut-hint .tut-step { display:block; font-size:11px; color:#c9a227; letter-spacing:2px; margin-bottom:2px; }
+
+@media (max-width:720px){
+  .bag-grid { grid-template-columns:repeat(auto-fill,minmax(52px,1fr)); }
+  .char-tabs button { min-width:60px; font-size:11px; }
+  #hud-map { font-size:12px; top:8px; }
+  #tut-hint { max-width:88vw; bottom:150px; font-size:12.5px; }
+  .is-frame { padding:24px 20px; }
+}
+
+/* Danh hiệu picker */
+.title-row { transition: background .15s, transform .15s; }
+.title-row:hover { background: rgba(201,162,39,.14) !important; transform: translateX(2px); }
+.title-row.equipped { box-shadow: 0 0 10px rgba(201,162,39,.25) inset; }
+
+/* ── Minimap — trong luồng cột phải, kèm nút ẩn/hiện ── */
+#minimap-wrap { position:relative; margin-top:4px; line-height:0; }
+#minimap { border:1px solid rgba(220,200,150,.6); border-radius:6px;
+  background:rgba(14,11,8,.8); box-shadow:0 2px 14px rgba(0,0,0,.5); pointer-events:auto; }
+#btn-minimap { position:absolute; top:5px; right:5px; width:22px; height:22px; padding:0;
+  font-size:11px; line-height:1; border-radius:4px; cursor:pointer; pointer-events:auto;
+  background:rgba(20,16,10,.88); color:#f0d68a; border:1px solid rgba(220,200,150,.55); }
+#btn-minimap:hover { background:rgba(60,48,28,.95); }
+#btn-minimap.off { opacity:.6; position:static; margin-left:auto; }
+/* ── Cài đặt ── */
+.set-row { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:7px 2px;
+  border-bottom:1px dashed rgba(220,200,150,.18); font-size:13px; }
+.set-row b { color:#f0d68a; min-width:26px; text-align:right; }
+.set-row input[type=range] { flex:1; accent-color:#c9a227; height:4px; cursor:pointer; }
+.mini-btn.danger { border-color:#a03a2a; color:#ff8a7a; }
+.mini-btn.danger:hover { background:rgba(160,58,42,.25); }
+
+/* ---------- P1: nhiệm vụ theo vùng ---------- */
+.map-locked { border-style: dashed !important; opacity: .8; background: rgba(0,0,0,.15); }
+.ql-ch { font-family:'Playfair Display','Noto Serif',serif; font-weight:700; color:#e8c87a;
+  margin:10px 0 4px; padding-top:8px; border-top:1px dashed rgba(201,162,39,.35); font-size:14px; }
+.ql-row { font-size:12.5px; padding:3px 2px; line-height:1.5; color:#d8cbb0; }
+.ql-cur { background:rgba(201,162,39,.12); border-radius:4px; padding:4px 6px; }
+.q-side { margin-top:6px; padding-top:4px; border-top:1px dashed rgba(201,162,39,.25); font-size:11px; }
+
+/* ═══════════ QUẺ TIÊN THIÊN ═══════════ */
+#quze-screen { position:fixed; inset:0; z-index:31; display:flex; align-items:center; justify-content:center;
+  background:radial-gradient(ellipse at 50% 30%, rgba(58,44,22,.92), rgba(10,8,5,.97)); overflow:auto; }
+.qz-inner { text-align:center; max-width:760px; padding:26px 18px; }
+.qz-inner h1 { color:#f0d68a; letter-spacing:4px; margin-bottom:6px; }
+#quze-cards { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin:18px 0 10px; }
+.qz-card { position:relative; border-radius:8px; padding:16px 12px 12px; min-height:150px;
+  background:linear-gradient(170deg,rgba(255,250,235,.07),rgba(255,250,235,.02));
+  border:1.5px solid rgba(220,200,150,.4); transition:transform .15s, box-shadow .3s; }
+.qz-card .qz-glyph { font-size:34px; margin-bottom:6px; }
+.qz-card .qz-name { font-size:15px; font-weight:700; letter-spacing:1px; margin-bottom:2px; }
+.qz-card .qz-tier { font-size:10.5px; letter-spacing:3px; margin-bottom:8px; opacity:.85; }
+.qz-card .qz-desc { font-size:12px; color:#e8d9b0; line-height:1.5; min-height:34px; }
+.qz-card .qz-reroll { margin-top:10px; background:rgba(20,16,10,.9); color:#f0d68a;
+  border:1px solid rgba(220,200,150,.55); border-radius:4px; padding:5px 14px; font-size:12px;
+  font-family:inherit; cursor:pointer; }
+.qz-card .qz-reroll:hover { background:rgba(60,48,28,.95); }
+.qz-card.t-pham  { border-color:rgba(207,200,184,.55); }
+.qz-card.t-linh  { border-color:rgba(106,176,240,.7); box-shadow:0 0 12px rgba(106,176,240,.18); }
+.qz-card.t-huyen { border-color:rgba(176,138,232,.8); box-shadow:0 0 16px rgba(176,138,232,.25); }
+.qz-card.t-thien { border-color:rgba(240,160,58,.9); box-shadow:0 0 22px rgba(240,160,58,.4);
+  background:linear-gradient(170deg,rgba(240,160,58,.14),rgba(255,250,235,.03)); }
+.qz-card.rolling .qz-glyph, .qz-card.rolling .qz-name, .qz-card.rolling .qz-desc { animation:qzblur .5s; }
+@keyframes qzblur { 0%{filter:blur(0)} 40%{filter:blur(6px); opacity:.3} 100%{filter:blur(0)} }
+.qz-pers-label { color:#b8a878; font-size:12.5px; letter-spacing:2px; margin:14px 0 8px; }
+#quze-pers { display:flex; gap:10px; justify-content:center; margin-bottom:18px; flex-wrap:wrap; }
+.qz-pers { border:1px solid rgba(220,200,150,.35); border-radius:6px; padding:8px 14px; cursor:pointer;
+  font-size:12.5px; color:#e8d9b0; background:rgba(20,16,10,.6); transition:all .15s; max-width:220px; }
+.qz-pers small { display:block; font-size:10.5px; opacity:.65; margin-top:3px; line-height:1.4; }
+.qz-pers.sel { border-color:#f0d68a; background:rgba(201,162,39,.16); box-shadow:0 0 12px rgba(201,162,39,.3); }
+.qz-title-hint { color:#f0a03a; font-size:12.5px; margin-bottom:8px; text-shadow:0 0 10px rgba(240,160,58,.5); }
+@media (max-width:720px){ #quze-cards { grid-template-columns:1fr; } .qz-card { min-height:0; } }
+
+/* trait list trong panel Nhân vật */
+.trait-row { display:flex; align-items:center; gap:8px; padding:5px 4px; border-bottom:1px dashed rgba(220,200,150,.15); font-size:12.5px; }
+.trait-row .t-glyph { font-size:16px; }
+.trait-row .t-name { font-weight:700; letter-spacing:.5px; }
+.trait-row .t-desc { opacity:.7; font-size:11px; margin-left:auto; text-align:right; }
+
+/* ── Võ Học Phổ ── */
+.vh-learn-btn{ border-color:#e8c84a !important; color:#e8c84a !important; font-weight:bold; }
+.vh-learn-btn:disabled{ border-color:#5a5a5a !important; color:#5a5a5a !important; }
+
+/* ── Bàn Quẻ Tiên Thiên QCBH: 16 thẻ úp, lật & chọn 3 ── */
+.qz-wide { max-width:960px; }
+#quze-picked { display:flex; gap:10px; justify-content:center; margin:8px 0 4px; }
+.qzs { border:1px dashed rgba(220,200,150,.4); border-radius:6px; padding:6px 16px; font-size:12.5px; color:#b8a878; min-width:110px; }
+.qzs.filled { border-style:solid; color:#f0d68a; background:rgba(201,162,39,.14); font-weight:700; }
+.qzs.filled.t-thien { color:#f0a03a; border-color:rgba(240,160,58,.8); box-shadow:0 0 12px rgba(240,160,58,.35); }
+.qzs.filled.t-huyen { color:#b08ae8; border-color:rgba(176,138,232,.7); }
+#quze-board { display:grid; grid-template-columns:repeat(4,1fr); gap:9px; margin:10px 0 6px; }
+.qzc { position:relative; border:1px solid rgba(220,200,150,.25); border-radius:8px; min-height:148px;
+  cursor:pointer; overflow:hidden; background:rgba(20,16,10,.88); padding:6px;
+  transition:transform .18s, box-shadow .18s, opacity .18s; }
+.qzc:hover { transform:translateY(-3px); }
+.qzc .qzc-art { width:100%; height:82px; object-fit:cover; border-radius:5px; display:block; margin-bottom:4px; }
+.qzc .qzc-backglyph { position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+  font-size:34px; color:rgba(240,214,138,.85); text-shadow:0 0 14px rgba(240,160,58,.8); animation:qzpulse 2.2s infinite; pointer-events:none; }
+@keyframes qzpulse { 0%,100%{ opacity:.5; transform:scale(1); } 50%{ opacity:1; transform:scale(1.12); } }
+.qzc .qzc-name { font-size:12.5px; font-weight:700; letter-spacing:.5px; }
+.qzc .qzc-tier { font-size:9.5px; letter-spacing:2.5px; opacity:.85; margin:1px 0 3px; }
+.qzc .qzc-desc { font-size:10.5px; color:#e8d9b0; line-height:1.45; }
+.qzc.open.t-pham  { border-color:rgba(207,200,184,.55); }
+.qzc.open.t-linh  { border-color:rgba(106,176,240,.7); box-shadow:0 0 10px rgba(106,176,240,.2); }
+.qzc.open.t-huyen { border-color:rgba(176,138,232,.8); box-shadow:0 0 14px rgba(176,138,232,.3); }
+.qzc.open.t-thien { border-color:rgba(240,160,58,.95); box-shadow:0 0 20px rgba(240,160,58,.45); }
+.qzc.picked { outline:2px solid #f0d68a; outline-offset:-1px; box-shadow:0 0 18px rgba(240,214,138,.55); }
+.qzc.picked::after { content:'✔'; position:absolute; top:4px; right:6px; color:#f0d68a; font-size:14px; text-shadow:0 0 6px #000; }
+.qzc.dim { opacity:.3; pointer-events:none; }
+.qz-board-actions { margin:4px 0 2px; }
+.qz-shuffle { background:rgba(20,16,10,.9); color:#f0d68a; border:1px solid rgba(201,162,39,.5);
+  border-radius:6px; padding:7px 18px; cursor:pointer; font-size:12.5px; letter-spacing:1px; }
+.qz-shuffle:hover:not(:disabled) { background:rgba(60,48,28,.95); }
+.qz-shuffle:disabled { opacity:.4; cursor:not-allowed; }
+#btn-quze-go:disabled { opacity:.45; cursor:not-allowed; }
+@media (max-width:720px){ #quze-board { grid-template-columns:repeat(2,1fr); } .qzc { min-height:120px; } }
+
+/* Đặt tên nhân vật — màn Quẻ Tiên Thiên */
+.qz-name{ display:flex; gap:8px; justify-content:center; margin:2px 0 12px; }
+.qz-name input{ width:min(320px,68vw); padding:10px 14px; font-size:16px; text-align:center; color:#f0e2c0; background:rgba(20,14,8,.78); border:1px solid rgba(201,162,39,.55); border-radius:8px; outline:none; font-family:inherit; letter-spacing:.5px; }
+.qz-name input:focus{ border-color:#f0d68a; box-shadow:0 0 12px rgba(240,214,138,.28); }
+.qz-name input::placeholder{ color:#8a7a58; }
+.qz-name button{ padding:0 16px; font-size:18px; background:rgba(20,14,8,.78); border:1px solid rgba(201,162,39,.55); border-radius:8px; color:#f0d68a; cursor:pointer; }
+.qz-name button:hover{ background:rgba(60,45,20,.85); }
+.char-name{ color:#f0d68a; font-weight:700; }
+
+/* GDD Đợt 2 B3: Nhắc Việc Bấm Ngay */
+#hint-toast{ position:fixed; right:14px; bottom:86px; z-index:35; max-width:300px; background:rgba(20,14,8,.93); border:1px solid rgba(201,162,39,.55); border-radius:10px; padding:10px 12px; font-size:12.5px; color:#e8dcc0; line-height:1.5; box-shadow:0 6px 18px rgba(0,0,0,.5); }
+#hint-toast .hint-btn{ margin-top:8px; background:linear-gradient(180deg,#c9a227,#8a6d1a); border:1px solid #e8c84a; color:#1a1408; font-weight:700; border-radius:7px; padding:5px 14px; font-size:12.5px; cursor:pointer; }
+#hint-toast .hint-btn:hover{ filter:brightness(1.15); }
+/* GDD Đợt 2 B2: nút Tới Ngay trong tracker (hud cha đang pointer-events:none) */
+#quest-tracker{ pointer-events:auto; }
