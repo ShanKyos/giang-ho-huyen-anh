@@ -8547,9 +8547,10 @@ function aiNpcCtx(){
   const q = currentQuest();
   const g = gameTimeInfo();
   const wx = weatherNow();
+  const _hpV = Math.round((p.hp / p.maxHp) * 100); // NaN/Infinity (player chưa init xong) → mặc định 100
   return {
     level: p.level || 1, sect, realm,
-    hpPct: Math.max(0, Math.min(100, Math.round((p.hp / p.maxHp) * 100))),
+    hpPct: Number.isFinite(_hpV) ? Math.max(0, Math.min(100, _hpV)) : 100,
     sin: p.toiac || 0, traits, pers,
     mapName: MAPS[curMap].name, questName: q ? q.name : '',
     season: g.season.name || g.season.id, weather: wx ? wx.name : 'Không rõ',
