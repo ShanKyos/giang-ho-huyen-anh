@@ -1325,7 +1325,9 @@ const SEASONS = [
   { id:'dong', name:'Đông', icon:'❄',  color:'#bfe0f0', buffTxt:'+5% phòng thủ',    amb:{ kind:'snow',  color:'#eef4ff', n:32 }, dawn:0.27, dusk:0.73 },
 ];
 function gameClock(){ if (!player.gt) player.gt = { t: GT_DAY*0.30 }; return player.gt; }
+let _gtiCache = null; // per-frame memo: player.gt.t only changes inside update(), never during render()
 function gameTimeInfo(){
+  if (_gtiCache) return _gtiCache;
   const gt = gameClock();
   const totalDays = Math.floor(gt.t / GT_DAY);
   const year  = Math.floor(totalDays / 360) + 1;
@@ -1335,7 +1337,7 @@ function gameTimeInfo(){
   const frac  = (gt.t % GT_DAY) / GT_DAY;       // 0 = 0h, 0.5 = 12h
   const canh  = Math.floor(frac * 12) % 12;      // 12 canh giờ
   const season = SEASONS[Math.floor((month - 1) / 3)] || SEASONS[0];
-  return { year, month, day, canh, frac, season };
+  return (_gtiCache = { year, month, day, canh, frac, season });
 }
 function isNightGame(){
   const i = gameTimeInfo();
@@ -2405,6 +2407,18 @@ function compactInPlace(arr, keep){
   let w = 0;
   for (let i = 0; i < arr.length; i++){ if (keep(arr[i])) arr[w++] = arr[i]; }
   arr.length = w;
+}
+// Was `mobs.filter(x => x.zone === zone && !x.dead).length` called once per dead mob whose
+// respawn timer just expired — an O(n) scan of the whole mobs array per call. Packs can share
+// a zone object across several mobs, and multiple mobs can hit 0 respawnT the same frame, so
+// this rebuilds the per-zone alive count ONCE per update() tick (lazily, only if anything asks)
+// instead of once per respawn check.
+function zoneAliveCount(zone){
+  if (!_zoneAliveCache){
+    _zoneAliveCache = new Map();
+    for (const x of mobs){ if (!x.dead && x.zone) _zoneAliveCache.set(x.zone, (_zoneAliveCache.get(x.zone) || 0) + 1); }
+  }
+  return _zoneAliveCache.get(zone) || 0;
 }
 
 let packSeq = 1;
@@ -3686,8 +3700,11 @@ document.addEventListener('click', e=>{
 });
 
 // ---------- Update ----------
+let _zoneAliveCache = null; // per-frame memo for zoneAliveCount(), reset every update() tick
 function update(dt){
   if (!player) return;
+  _zoneAliveCache = null;
+  _gtiCache = null; // gameTimeInfo() per-frame memo — reset once per tick, see its own comment
   if (hitStop > 0){ hitStop -= dt; dt *= 0.08; } // hit-stop: thế giới khựng lại 1 nhịp khi chém trúng — đòn có lực
   // cooldowns
   for (const k in player.cd) player.cd[k] = Math.max(0, player.cd[k] - dt);
@@ -4134,8 +4151,7 @@ function update(dt){
     }
     m.respawnT -= dt;
     if (m.respawnT <= 0 && m.zone){
-      const alive = mobs.filter(x => x.zone === m.zone && !x.dead).length;
-      if (alive < m.zone.count){ spawnMob(m.type, m.zone); m.gone = true; }
+      if (zoneAliveCount(m.zone) < m.zone.count){ spawnMob(m.type, m.zone); m.gone = true; }
       else m.respawnT = 3;
     }
   }
@@ -7777,6 +7793,72 @@ function drawOverheadTitle(p, yOff, riding, maxed){
 }
 
 // ---------- Minimap ----------
+// Everything in this static layer only depends on curMap (background art, level-band rings +
+// labels, spring/herb dots, city wall, gates) — none of it changes frame to frame, but it used
+// to be fully redrawn (incl. a distance loop over every pack + 3 stroked arcs + 3 text labels)
+// 60 times/sec regardless. Render it once per map onto an offscreen canvas and blit that;
+// rebuilt automatically if the minimap canvas itself is ever resized.
+let _miniStaticCache = null, _miniStaticKey = null;
+function drawMinimapStatic(mw, mh, sx, sy, md){
+  const key = curMap + '|' + mw + 'x' + mh;
+  if (_miniStaticCache && _miniStaticKey === key) return _miniStaticCache;
+  const off = document.createElement('canvas'); off.width = mw; off.height = mh;
+  const sc = off.getContext('2d');
+  // nền: ưu tiên ảnh map vẽ tay (thu nhỏ + phủ tối 40%), fallback màu đất phẳng
+  const _bg = MAP_BG[curMap];
+  if (_bg && _bg.complete && _bg.naturalWidth > 0){
+    sc.drawImage(_bg, 0, 0, mw, mh);
+    sc.fillStyle = 'rgba(22,18,12,.40)';
+    sc.fillRect(0, 0, mw, mh);
+  } else {
+    sc.fillStyle = md.ground || '#d8ccb0';
+    sc.fillRect(0, 0, mw, mh);
+    sc.fillStyle = 'rgba(22,18,12,.30)';
+    sc.fillRect(0, 0, mw, mh);
+  }
+  // vòng đai cấp đồng tâm từ cửa vào map (xanh lá/vàng/đỏ)
+  if (md.packs && md.packs.length && md.spawn){
+    let _maxD = 1;
+    for (const pk of md.packs){ const d = dist(pk.x, pk.y, md.spawn.x, md.spawn.y); if (d > _maxD) _maxD = d; }
+    const _radii = [0.45*_maxD, 0.8*_maxD, _maxD];
+    for (let b = 0; b < 3; b++){
+      sc.beginPath(); sc.arc(md.spawn.x*sx, md.spawn.y*sy, _radii[b]*sx, 0, 7);
+      sc.strokeStyle = BAND_COLORS[b]; sc.globalAlpha = 0.32; sc.lineWidth = 1.4; sc.stroke();
+      sc.globalAlpha = 1;
+    }
+    // chú thích cấp đai ở mép vòng
+    sc.font = '7px "Be Vietnam Pro", sans-serif'; sc.textAlign = 'center';
+    for (let b = 0; b < 3; b++){
+      sc.fillStyle = BAND_COLORS[b]; sc.globalAlpha = 0.9;
+      sc.fillText(bandLvText(md, b), (md.spawn.x + _radii[b]*0.72)*sx, (md.spawn.y - _radii[b]*0.72)*sy);
+      sc.globalAlpha = 1;
+    }
+  }
+  // Tiên Tuyền
+  if (md.spring){
+    sc.fillStyle = '#7fd8e0';
+    sc.beginPath(); sc.arc(SPRING.x*sx, SPRING.y*sy, 3, 0, 7); sc.fill();
+  }
+  // điểm thảo dược — hiện mặc định trên mọi map có thuốc (không cần Quẻ Thiên Nhãn)
+  if (md.herbs){
+    sc.fillStyle = '#6ae88a';
+    for (const h of HERB_SPOTS){ sc.beginPath(); sc.arc(h.x*sx, h.y*sy, 1.8, 0, 7); sc.fill(); }
+  }
+  // Tường thành + cổng thành
+  if (curMap === CITY_WALL.map){
+    sc.strokeStyle = 'rgba(168,118,58,.85)'; sc.lineWidth = 1.5;
+    sc.strokeRect(CITY_WALL.x1*sx, CITY_WALL.y1*sy, (CITY_WALL.x2-CITY_WALL.x1)*sx, (CITY_WALL.y2-CITY_WALL.y1)*sy);
+  }
+  for (const g of GATES){
+    if (g.map !== curMap) continue;
+    sc.fillStyle = g.portal ? '#b08ae8' : '#d8963a';
+    sc.fillRect(g.x*sx-3, g.y*sy-3, 6, 6);
+    sc.strokeStyle = 'rgba(0,0,0,.6)'; sc.lineWidth = 1;
+    sc.strokeRect(g.x*sx-3, g.y*sy-3, 6, 6);
+  }
+  _miniStaticCache = off; _miniStaticKey = key;
+  return off;
+}
 function drawMinimap(){
   if (!miniCtx || !miniCvs) return;
   miniCvs.style.display = SETTINGS.minimap ? 'block' : 'none';
@@ -7787,58 +7869,7 @@ function drawMinimap(){
   const sx = mw / MAP.w, sy = mh / MAP.h;
   const md = mapDef();
   const mc = miniCtx;
-  // nền: ưu tiên ảnh map vẽ tay (thu nhỏ + phủ tối 40%), fallback màu đất phẳng
-  const _bg = MAP_BG[curMap];
-  if (_bg && _bg.complete && _bg.naturalWidth > 0){
-    mc.drawImage(_bg, 0, 0, mw, mh);
-    mc.fillStyle = 'rgba(22,18,12,.40)';
-    mc.fillRect(0, 0, mw, mh);
-  } else {
-    mc.fillStyle = md.ground || '#d8ccb0';
-    mc.fillRect(0, 0, mw, mh);
-    mc.fillStyle = 'rgba(22,18,12,.30)';
-    mc.fillRect(0, 0, mw, mh);
-  }
-  // vòng đai cấp đồng tâm từ cửa vào map (xanh lá/vàng/đỏ)
-  if (md.packs && md.packs.length && md.spawn){
-    let _maxD = 1;
-    for (const pk of md.packs){ const d = dist(pk.x, pk.y, md.spawn.x, md.spawn.y); if (d > _maxD) _maxD = d; }
-    const _radii = [0.45*_maxD, 0.8*_maxD, _maxD];
-    for (let b = 0; b < 3; b++){
-      mc.beginPath(); mc.arc(md.spawn.x*sx, md.spawn.y*sy, _radii[b]*sx, 0, 7);
-      mc.strokeStyle = BAND_COLORS[b]; mc.globalAlpha = 0.32; mc.lineWidth = 1.4; mc.stroke();
-      mc.globalAlpha = 1;
-    }
-    // chú thích cấp đai ở mép vòng
-    mc.font = '7px "Be Vietnam Pro", sans-serif'; mc.textAlign = 'center';
-    for (let b = 0; b < 3; b++){
-      mc.fillStyle = BAND_COLORS[b]; mc.globalAlpha = 0.9;
-      mc.fillText(bandLvText(md, b), (md.spawn.x + _radii[b]*0.72)*sx, (md.spawn.y - _radii[b]*0.72)*sy);
-      mc.globalAlpha = 1;
-    }
-  }
-  // Tiên Tuyền
-  if (md.spring){
-    mc.fillStyle = '#7fd8e0';
-    mc.beginPath(); mc.arc(SPRING.x*sx, SPRING.y*sy, 3, 0, 7); mc.fill();
-  }
-  // điểm thảo dược — hiện mặc định trên mọi map có thuốc (không cần Quẻ Thiên Nhãn)
-  if (md.herbs){
-    mc.fillStyle = '#6ae88a';
-    for (const h of HERB_SPOTS){ mc.beginPath(); mc.arc(h.x*sx, h.y*sy, 1.8, 0, 7); mc.fill(); }
-  }
-  // Tường thành + cổng thành
-  if (curMap === CITY_WALL.map){
-    mc.strokeStyle = 'rgba(168,118,58,.85)'; mc.lineWidth = 1.5;
-    mc.strokeRect(CITY_WALL.x1*sx, CITY_WALL.y1*sy, (CITY_WALL.x2-CITY_WALL.x1)*sx, (CITY_WALL.y2-CITY_WALL.y1)*sy);
-  }
-  for (const g of GATES){
-    if (g.map !== curMap) continue;
-    mc.fillStyle = g.portal ? '#b08ae8' : '#d8963a';
-    mc.fillRect(g.x*sx-3, g.y*sy-3, 6, 6);
-    mc.strokeStyle = 'rgba(0,0,0,.6)'; mc.lineWidth = 1;
-    mc.strokeRect(g.x*sx-3, g.y*sy-3, 6, 6);
-  }
+  mc.drawImage(drawMinimapStatic(mw, mh, sx, sy, md), 0, 0);
   // NPC — chấm vàng viền trắng + tên + dấu nhiệm vụ (! vàng = trả được, … xanh = có NV)
   const qNow = (typeof currentQuest === 'function') ? currentQuest() : null;
   const mapNpcs = NPCS.filter(n => n.map === curMap);
