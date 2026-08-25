@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mock Test — Hô Tên Chiêu (Tiếng Trung)</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    background: radial-gradient(ellipse at 50% 30%, #241c12 0%, #12100c 60%, #0a0806 100%);
+    font-family: system-ui, sans-serif; color: #e8dcc0; padding: 24px;
+  }
+  .wrap { max-width: 560px; width: 100%; }
+  h1 {
+    font-family: 'Playfair Display', serif; font-size: 26px; color: #f0d68a;
+    text-align: center; letter-spacing: 3px; margin-bottom: 6px;
+  }
+  .sub { text-align: center; font-size: 13px; color: #b8a878; margin-bottom: 24px; line-height: 1.6; }
+  .card {
+    background: linear-gradient(160deg, #1d1812, #12100c);
+    border: 1px solid #8a6d3b; border-radius: 12px;
+    padding: 18px 20px; margin-bottom: 14px;
+    box-shadow: 0 4px 24px rgba(0,0,0,.5);
+  }
+  .skill { display: flex; align-items: baseline; gap: 12px; margin-bottom: 4px; flex-wrap: wrap; }
+  .hanzi { font-size: 30px; color: #f0d68a; font-family: 'Kaiti SC', 'STKaiti', 'KaiTi', serif; letter-spacing: 4px; }
+  .vn { font-size: 15px; color: #e8dcc0; font-weight: 600; }
+  .voice-tag {
+    font-size: 11px; color: #12100c; background: #c9a227; border-radius: 999px;
+    padding: 2px 10px; font-weight: 700; letter-spacing: 1px;
+  }
+  .voice-tag.young { background: #d8853a; }
+  .note { font-size: 12px; color: #8a7a58; margin-bottom: 10px; }
+  audio { width: 100%; height: 36px; outline: none; }
+  audio::-webkit-media-controls-panel { background: #2a2118; }
+  .footer {
+    margin-top: 20px; text-align: center; font-size: 12px; color: #8a7a58; line-height: 1.8;
+    border-top: 1px solid #3a2f1e; padding-top: 14px;
+  }
+  .footer b { color: #b8a878; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>HÔ TÊN CHIÊU — MOCK TEST</h1>
+  <div class="sub">Nghe thử 4 mẫu giọng Quan thoại hô tên tuyệt học.<br>Chọn kiểu giọng bạn thích, mình sẽ làm cho toàn bộ ~97 chiêu thức trong game.</div>
+
+  <div class="card">
+    <div class="skill"><span class="hanzi">降龍十八掌</span><span class="vn">Hàng Long Thập Bát Chưởng</span><span class="voice-tag">GIỌNG TRẦM TRUNG NIÊN</span></div>
+    <div class="note">Trầm, chậm rãi — hợp vai đại hiệp / cao thủ lão luyện</div>
+    <audio controls preload="auto" src="voice-samples/hanglong-tram.mp3"></audio>
+  </div>
+
+  <div class="card">
+    <div class="skill"><span class="hanzi">降龍十八掌</span><span class="vn">Hàng Long Thập Bát Chưởng</span><span class="voice-tag young">GIỌNG TRẺ MẠNH MẼ</span></div>
+    <div class="note">Trẻ, đầy khí thế — hợp cảm giác "hô chiêu" xuất thủ</div>
+    <audio controls preload="auto" src="voice-samples/hanglong-tre.mp3"></audio>
+  </div>
+
+  <div class="card">
+    <div class="skill"><span class="hanzi">六脈神劍</span><span class="vn">Lục Mạch Thần Kiếm</span><span class="voice-tag young">GIỌNG TRẺ MẠNH MẼ</span></div>
+    <div class="note">So sánh cách hô chiêu kiếm (âm tiết ngắn, dứt khoát)</div>
+    <audio controls preload="auto" src="voice-samples/lucmach-tre.mp3"></audio>
+  </div>
+
+  <div class="card">
+    <div class="skill"><span class="hanzi">乾坤大挪移</span><span class="vn">Càn Khôn Đại Na Di</span><span class="voice-tag">GIỌNG TRẦM TRUNG NIÊN</span></div>
+    <div class="note">So sánh cách hô chiêu tâm pháp / thân pháp</div>
+    <audio controls preload="auto" src="voice-samples/cankhon-tram.mp3"></audio>
+  </div>
+
+  <div class="footer">
+    Khi đưa vào game: chỉ hô <b>tuyệt học / chiêu dung hợp / chiêu hồi chiêu dài</b>, có nút bật-tắt, chống spam 3-5s.<br>
+    Trong game sẽ phát với <b>tốc độ ~1.1x + âm lượng lớn</b> để thêm lực "hét".<br>
+    Mỗi chiêu 1 file ~15KB — 97 chiêu chỉ tốn ~1.5MB tải về, phát không độ trễ.
+  </div>
+</div>
+</body>
+</html>
