@@ -2226,6 +2226,7 @@ function newPlayer(sectKey){
     bikip: { pieces: [0,0,0], hmtp: false },   // Tàn quyển Huyết Ma Thôn Phệ
     battuCd: 0,                                // Hỗn Nguyên Bất Tử cooldown
     maxJumps: 1,
+    hintCd: {}, hintOff: {},                   // Nhắc Việc — GDD Đợt 2 B3 (fix: thiếu ở tạo mới, chỉ có trong loadGame backfill → crash updateHints() cho nhân vật mới chưa qua 1 lần save/load)
   };
   for (const m of MERIDIANS) player.meridians[m.id] = 0;
   for (const sl of SLOTS) player.equip[sl.id] = null;
@@ -3372,6 +3373,9 @@ function updateHints(dt){
   if (window._hintT > 0) return;
   window._hintT = 1.2; // quét 1.2s/lần — khỏi tốn hiệu năng
   const t = el('hint-toast'); if (!t) return;
+  if (player && !player.hintCd) player.hintCd = {};   // defense-in-depth: newPlayer() and loadGame() both set these now, but guard here too
+  if (player && !player.hintOff) player.hintOff = {}; // so any future field added to only one path degrades gracefully instead of crashing
+
   if (DGN || !player || dead || player.combatT > 0 || anyPanelOpen()){
     if (!t.classList.contains('hidden')) t.classList.add('hidden');
     return;
