@@ -2785,7 +2785,7 @@ function addDmgFloat(target, x, y, dmg, color, size){
   target._dmgF = nf;
   return nf;
 }
-function addEffect(e){ effects.push(Object.assign({ t:0 }, e)); }
+function addEffect(e){ if (effects.length >= 400) effects.splice(0, effects.length - 399); effects.push(Object.assign({ t:0 }, e)); } // trần cứng chống phình RAM
 
 function hurtMob(m, dmg, source){
   if (m.dead) return;
@@ -4245,6 +4245,7 @@ function update(dt){
     }
   }
   projectiles = projectiles.filter(p=>p.life > 0);
+  if (projectiles.length > 160) projectiles.splice(0, projectiles.length - 160); // trần cứng chống phình RAM
 
   // effects & floats
   for (const e of effects){ e.t += dt; if (e.type==='ink' || e.vx || e.vy){ e.x += (e.vx||0)*dt; e.y += (e.vy||0)*dt; } if (e.spin) e.ang = (e.ang || 0) + e.spin*dt; }
@@ -6458,6 +6459,44 @@ else setTimeout(showIntro, 0); // người mới → cốt truyện (defer: ch�
   vd.addEventListener('ended', closeV);
 }
 window.addEventListener('beforeunload', saveGame);
+
+// ---------- Crash watchdog: ghi lại lỗi cuối để chẩn đoán ----------
+{
+  const CK = 'vlcm_crashlog';
+  const logErr = (kind, msg, stack) => {
+    try {
+      const arr = JSON.parse(localStorage.getItem(CK) || '[]');
+      arr.push({ t: Date.now(), kind, msg: String(msg).slice(0, 300), stack: String(stack || '').slice(0, 500),
+        map: typeof curMap !== 'undefined' ? curMap : '?', fx: typeof effects !== 'undefined' ? effects.length : -1,
+        mobs: typeof mobs !== 'undefined' ? mobs.length : -1, ua: navigator.userAgent.slice(0, 120),
+        mem: (performance.memory ? Math.round(performance.memory.usedJSHeapSize / 1048576) : -1) });
+      while (arr.length > 5) arr.shift();
+      localStorage.setItem(CK, JSON.stringify(arr));
+    } catch (e) {}
+  };
+  window.addEventListener('error', e => logErr('error', e.message, e.error && e.error.stack));
+  window.addEventListener('unhandledrejection', e => logErr('reject', e.reason && e.reason.message || e.reason, e.reason && e.reason.stack));
+  // báo lại nếu phiên trước kết thúc bất thường (crash tab — không chạy beforeunload)
+  try {
+    const wasAlive = sessionStorage.getItem('vlcm_alive');
+    const logs = JSON.parse(localStorage.getItem(CK) || '[]');
+    if (!wasAlive && logs.length){
+      const last = logs[logs.length - 1];
+      console.warn('[GHHA] Phiên trước kết thúc bất thường. Lỗi cuối:', last);
+      setTimeout(() => {
+        try {
+          const d = document.createElement('div');
+          d.style.cssText = 'position:fixed;bottom:10px;left:50%;transform:translateX(-50%);z-index:99998;max-width:520px;padding:8px 16px;border:1px solid #a04a3a;border-radius:8px;background:rgba(40,18,14,.94);color:#f0b8a8;font:12px/1.5 system-ui,sans-serif;text-align:center';
+          d.textContent = '⚠ Phiên chơi trước bị gián đoạn bất thường. Nếu hay gặp crash, hãy thử bật Low FX trong Cài Đặt — lỗi đã được ghi lại để đội dev kiểm tra.';
+          d.onclick = () => d.remove();
+          document.body.appendChild(d);
+          setTimeout(() => d.remove(), 15000);
+        } catch (e) {}
+      }, 4000);
+    }
+    sessionStorage.setItem('vlcm_alive', '1');
+  } catch (e) {}
+}
 
 // quick-start via URL: ?sect=thieulam|toanchan|daohoa|comoc
 // defer: chờ toàn bộ script nạp xong (TUT_STEPS, SIDE_QUESTS, intro... khai báo ở cuối file) tránh TDZ
