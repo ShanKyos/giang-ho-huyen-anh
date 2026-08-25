@@ -2406,6 +2406,18 @@ function compactInPlace(arr, keep){
   for (let i = 0; i < arr.length; i++){ if (keep(arr[i])) arr[w++] = arr[i]; }
   arr.length = w;
 }
+// Was `mobs.filter(x => x.zone === zone && !x.dead).length` called once per dead mob whose
+// respawn timer just expired — an O(n) scan of the whole mobs array per call. Packs can share
+// a zone object across several mobs, and multiple mobs can hit 0 respawnT the same frame, so
+// this rebuilds the per-zone alive count ONCE per update() tick (lazily, only if anything asks)
+// instead of once per respawn check.
+function zoneAliveCount(zone){
+  if (!_zoneAliveCache){
+    _zoneAliveCache = new Map();
+    for (const x of mobs){ if (!x.dead && x.zone) _zoneAliveCache.set(x.zone, (_zoneAliveCache.get(x.zone) || 0) + 1); }
+  }
+  return _zoneAliveCache.get(zone) || 0;
+}
 
 let packSeq = 1;
 // ---------- Đai cấp trong map: Ngoại Vi → Trung Tâm → Hạt Nhân ----------
@@ -3686,8 +3698,10 @@ document.addEventListener('click', e=>{
 });
 
 // ---------- Update ----------
+let _zoneAliveCache = null; // per-frame memo for zoneAliveCount(), reset every update() tick
 function update(dt){
   if (!player) return;
+  _zoneAliveCache = null;
   if (hitStop > 0){ hitStop -= dt; dt *= 0.08; } // hit-stop: thế giới khựng lại 1 nhịp khi chém trúng — đòn có lực
   // cooldowns
   for (const k in player.cd) player.cd[k] = Math.max(0, player.cd[k] - dt);
@@ -4134,8 +4148,7 @@ function update(dt){
     }
     m.respawnT -= dt;
     if (m.respawnT <= 0 && m.zone){
-      const alive = mobs.filter(x => x.zone === m.zone && !x.dead).length;
-      if (alive < m.zone.count){ spawnMob(m.type, m.zone); m.gone = true; }
+      if (zoneAliveCount(m.zone) < m.zone.count){ spawnMob(m.type, m.zone); m.gone = true; }
       else m.respawnT = 3;
     }
   }
