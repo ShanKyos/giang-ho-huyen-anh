@@ -471,6 +471,13 @@ const EXACT = {
   'Giọng hô tên chiêu (Tàu)': 'Chinese skill shout',
   '🔊 Bật giọng hô tên chiêu': '🔊 Skill shout ON',
   '🔇 Tắt giọng hô tên chiêu': '🔇 Skill shout OFF',
+  '💠 Tâm Đắc': '💠 Insight',
+  '⌨ Phím Space': '⌨ Space key',
+  'Đòn đánh thường': 'Basic attack',
+  '⚡ TIẾN HÓA': '⚡ EVOLUTION',
+  '⚡ CHIÊU THỨC TIẾN HÓA!': '⚡ SKILL EVOLVED!',
+  'Đột phá': 'Breakthrough',
+  'tiến hóa bậc': 'evolution stage',
 };
 
 /* ---- Bổ sung dịch: nhiệm vụ chính tuyến/phụ tuyến + võ học/kỹ năng ---- */
