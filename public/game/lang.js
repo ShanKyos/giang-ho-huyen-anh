@@ -2074,7 +2074,7 @@ Object.assign(EXACT, {
 "Ngươi mang theo gì quý không? Cho ta xem chút!":"Carrying anything precious? Let me have a look!",
 "Ngươi đến là ta vui rồi, không cần lễ vật chi.":"Your visit alone pleases me — no gifts needed.",
 "Người Trung Nguyên… chứng minh đi.":"Central Plains folk… prove yourself.",
-"Nhân":"Nhân",
+"Nhân":"Char",
 "Nhân Vật — mọi tu luyện trong một":"Character — all cultivation in one place",
 "Nhân vật (C) — Thú cưỡi · Đan điền · Rèn · Tuyệt học":"Character (C) — Mount · Dantian · Forge · Ultimate Arts",
 "Nhược Thủy":"Nhược Thủy",
@@ -2206,7 +2206,13 @@ Object.assign(EXACT, {
 "Đến đây, tiểu bối.":"Come here, junior.",
 "Đệ tử ngoan của sư huynh… ngươi đến giết ta à?":"My senior brother's obedient disciple… come to kill me?",
 "Đệ tử Đào Hoa à… sư tỷ ngươi từng quỳ gối trong trại này đấy, ha!":"A Peach Blossom disciple… your senior sister once knelt in this very camp, ha!",
-"Đồ":"Gear",
+"Đồ":"Map",
+"Trang":"Gear",
+"Tán Gẫu":"Chat",
+"Tối đa":"Max",
+"Rèn thành công +11":"Successfully forge to +11",
+"☁ Tán Tiên":"☁ Rogue Immortal",
+"💬 Tán Gẫu":"💬 Chat",
 "Đổi Cổ Thần — Tứ Tượng tự chọn":"Exchange Ancient Gods — choose your Four Symbols",
 "Độc Cô":"Độc Cô",
 "Độc Hành":"Độc Hành",
@@ -2779,6 +2785,29 @@ RULES.unshift(
 [new RegExp("^\\[(.+?[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ].*)\\]$"), (m,a)=>{const t=tr(a);return t===a?m:"["+t+"]";}],
 [new RegExp("^(.+?⚖ )(.+?[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ].*)$"), (m,a,b)=>{const t=tr(b);return t===b?m:a+t;}]
 );
+RULES.unshift(
+  // ── Phase-4 fixes: 【】/() wrappers, item-name compositions, hint bar, NPC panel ──
+[new RegExp("^(.+) \\((Tối đa)\\)$"), (m,a)=>{const t=tr(a);return t!==a?t+" (Max)":m;}],
+  [new RegExp("^(.+) — (\\d+) nội lực · (\\d+)s$"), (m,a,b,c)=>{const t=tr(a);return t!==a?t+" — "+b+" qi · "+c+"s":m;}],
+  [new RegExp("^hiện cấp (\\d+)$"), "currently Lv $1"],
+  [new RegExp("^\\s*· xuất thế (.+?)\\s*$"), (m,a)=>{const t=tr(a);return t!==a?m.replace("xuất thế "+a,"emerged as "+t).replace("xuất thế","emerged as"):m;}],
+  [new RegExp("^ · TỘI ÁC (\\d+)$"), " · CRIME $1"],
+  [new RegExp("^【(.+)】$"), (m,a)=>{const t=tr(a);return t!==a?"["+t+"]":m;}],
+  [new RegExp("^Hoàn Hảo (.+?) \\+(\\d+)\\((.+?)\\)$"), (m,a,b,c)=>{const t=tr(a);return t!==a?"Perfect "+t+" +"+b+"("+tr(c)+")":m;}],
+  [new RegExp("^Hoàn Hảo (.+?) \\+(\\d+)$"), (m,a,b)=>{const t=tr(a);return t!==a?"Perfect "+t+" +"+b:m;}],
+  [new RegExp("^Hoàn Hảo (.+)$"), (m,a)=>{const t=tr(a);return t!==a?"Perfect "+t:m;}],
+  [new RegExp("^(.+?[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ].*?) \\+(\\d+)\\((.+?)\\)$"), (m,a,b,c)=>{const t=tr(a);return t!==a?t+" +"+b+"("+tr(c)+")":m;}],
+  [new RegExp("^(.+?[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ].*?) \\+(\\d+)$"), (m,a,b)=>{const t=tr(a);return t!==a?t+" +"+b:m;}],
+  [new RegExp("^\\((.+[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ].*)\\)$"), (m,a)=>{const t=tr(a);return t!==a?"("+t+")":m;}],
+  [new RegExp("^WASD di chuyển · .+$"), (m)=>{const HM={"WASD di chuyển":"WASD move","Space đánh":"Space attack","E nói chuyện":"E talk","R hồ lô thuốc":"R potion","Q nhiệm vụ":"Q quests","C nhân vật":"C character","B túi":"B bag","M bản đồ":"M map","K kỹ năng":"K skills","T thu phục":"T tame","L nhân mạch":"L relations","J nhảy":"J jump"};const parts=m.split(" · ");let hit=false;const out=parts.map(p=>{if(HM[p]){hit=true;return HM[p];}const t=tr(p);if(t!==p)hit=true;return t;});return hit?out.join(" · "):m;}],
+  [new RegExp("^❤ Tình cảm: (\\d+)/100 — đạo lữ của ngươi$"), "❤ Affection: $1/100 — your Dao companion"],
+  [new RegExp("^❤ Tình cảm: (\\d+)/100 \\(ngươi đã có đạo lữ\\)$"), "❤ Affection: $1/100 (you already have a Dao companion)"],
+  [new RegExp("^❤ Tình cảm: (\\d+)/100$"), "❤ Affection: $1/100"],
+  [new RegExp("^(.+) \\(hôm nay rồi\\)$"), (m,a)=>{const t=tr(a);return t!==a?t+" (done today)":m;}],
+  [new RegExp("^📖 Luận Đạo — truyền thụ (.+)$"), (m,a)=>"📖 Dao Discourse — imparting "+tr(a)],
+  [new RegExp("^☯ Bái Sư — (.+)$"), (m,a)=>{const SV=["Bạch Đà Sơn","Thiếu Lâm","Toàn Chân","Minh Giáo","Đoàn Thị","Đào Hoa","Cổ Mộ","Tán Nhân"];for(const sc of SV){if(a.startsWith(sc+" "))return "☯ Apprenticeship — "+tr(sc)+" "+a.slice(sc.length+1);}const t=tr(a);return t!==a?"☯ Apprenticeship — "+t:m;}],
+  [new RegExp("^\\s*· (.+) · Tính cách:\\s*$"), (m,a)=>{const t=tr(a);return t!==a?m.replace(a,t).replace("Tính cách:","Personality:"):m;}]
+);
 // tr() is a pure string->string mapping (no game-state dependency), so its result for a given
 // input never changes within a page load — memoize it. Canvas text (mob nameplates, floating
 // damage numbers) redraws the same strings every frame at 60fps, and without this each call
@@ -2809,7 +2838,10 @@ function trCompute(s) {
   }
   for (const [re, rep] of RULES) {
     const m = s.match(re);
-    if (m) return typeof rep === 'function' ? rep(...m) : s.replace(re, rep);
+    if (m) {
+      const out = typeof rep === 'function' ? rep(...m) : s.replace(re, rep);
+      if (out !== s) return out; // gated no-op → fall through to later rules
+    }
   }
   return s;
 }
