@@ -2779,8 +2779,22 @@ RULES.unshift(
 [new RegExp("^\\[(.+?[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ].*)\\]$"), (m,a)=>{const t=tr(a);return t===a?m:"["+t+"]";}],
 [new RegExp("^(.+?⚖ )(.+?[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ].*)$"), (m,a,b)=>{const t=tr(b);return t===b?m:a+t;}]
 );
+// tr() is a pure string->string mapping (no game-state dependency), so its result for a given
+// input never changes within a page load — memoize it. Canvas text (mob nameplates, floating
+// damage numbers) redraws the same strings every frame at 60fps, and without this each call
+// falls through the EXACT dictionary miss into a full linear scan of the RULES regex list
+// (now 500+ entries after the full-coverage EN pass — memoization matters even more).
+const _trCache = new Map();
 function tr(s) {
   if (lang !== 'en' || !s || typeof s !== 'string') return s;
+  const cached = _trCache.get(s);
+  if (cached !== undefined) return cached;
+  const result = trCompute(s);
+  if (_trCache.size > 5000) _trCache.clear(); // safety cap; rules are static so a clear just costs a few recomputes
+  _trCache.set(s, result);
+  return result;
+}
+function trCompute(s) {
   if (Object.prototype.hasOwnProperty.call(EXACT, s)) return EXACT[s];
   const t2 = s.trim();
   if (t2 !== s) {

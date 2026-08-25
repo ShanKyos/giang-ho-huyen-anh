@@ -721,7 +721,6 @@ const VOHOC_DEFS = {
 const VH_REALM_REQ  = { so:5, trung:5, cao:6, than:7 };
 const VH_REALM_NAME = { 5:'Kim Đan Cảnh', 6:'Nguyên Anh · Trung Kỳ', 7:'Nguyên Anh · Hậu Kỳ' };
 function vhRealmReq(v){ return v.phai ? 0 : (VH_REALM_REQ[v.tier] || 5); }
-function vhLearned(id){ return !!(player && player.vohoc && player.vohoc[id]); }
 // Đăng ký võ học chủ động vào SKILL_DEFS — dùng chung taskbar 5 ô & phím 1-5
 for (const _vid in VOHOC_DEFS){
   const _v = VOHOC_DEFS[_vid];
@@ -797,7 +796,7 @@ function skMile(id){
 }
 // GDD Tiến Hóa Chiêu Thức: mỗi cấp −0,25% hồi chiêu (tối đa −30% ở Lv120) — cuối game tung chiêu liên tục, không khoảng chết
 function skCdScale(id){ return Math.max(0.7, 1 - (skLv(id) - 1) * 0.0025); }
-function effCd(id, base){ return Math.max(0.5, (base || 0) * skCdScale(id) * skMile(id).cd); }
+function effCd(id, base){ return Math.max(0.5, (base || 0) * (player.vhCdMult || 1) * skMile(id).cd * skCdScale(id)); }
 // Tiến hóa chiêu ở mốc Lv 40/80/120 (bậc 0-3): kiếm/đạo/sóng/vòng nổ tăng theo bậc — vd Lục Mạch 1→2→3→4 kiếm
 function evoStage(id){ const lv = skLv(id); return lv >= 120 ? 3 : lv >= 80 ? 2 : lv >= 40 ? 1 : 0; }
 // Kiểm tra im lặng cho phím Space (không bắn float báo lỗi)
@@ -2227,6 +2226,7 @@ function newPlayer(sectKey){
     bikip: { pieces: [0,0,0], hmtp: false },   // Tàn quyển Huyết Ma Thôn Phệ
     battuCd: 0,                                // Hỗn Nguyên Bất Tử cooldown
     maxJumps: 1,
+    hintCd: {}, hintOff: {},                   // Nhắc Việc — GDD Đợt 2 B3 (fix: thiếu ở tạo mới, chỉ có trong loadGame backfill → crash updateHints() cho nhân vật mới chưa qua 1 lần save/load)
   };
   for (const m of MERIDIANS) player.meridians[m.id] = 0;
   for (const sl of SLOTS) player.equip[sl.id] = null;
@@ -2398,6 +2398,14 @@ function loadGame(){
 function rnd(a,b){ return a + Math.random()*(b-a); }
 function dist(ax,ay,bx,by){ return Math.hypot(ax-bx, ay-by); }
 function clamp(v,a,b){ return Math.max(a, Math.min(b,v)); }
+// Compacts arr in place (keeping only entries where keep() is true), same result as
+// arr = arr.filter(keep) but without allocating a new array every call — these run
+// unconditionally every frame on entity lists that can hold hundreds of items.
+function compactInPlace(arr, keep){
+  let w = 0;
+  for (let i = 0; i < arr.length; i++){ if (keep(arr[i])) arr[w++] = arr[i]; }
+  arr.length = w;
+}
 
 let packSeq = 1;
 // ---------- Đai cấp trong map: Ngoại Vi → Trung Tâm → Hạt Nhân ----------
@@ -2655,27 +2663,6 @@ function drawBossTele(m){
   ctx.beginPath(); ctx.arc(m.x, m.y - m.def.size - 30, 12, -Math.PI/2, -Math.PI/2 + prog*Math.PI*2); ctx.stroke();
   ctx.restore();
 }
-// Dịch chuyển giữa các bản đồ
-window.travelTo = function(mapId){
-  const md = MAPS[mapId];
-  if (!md || !player) return;
-  if (player.level < md.min){
-    addFloat(player.x, player.y-40, `Cần cấp ${md.min} để vào ${md.name}!`, '#ff7a6a', 14);
-    return;
-  }
-  curMap = mapId;
-  closePanels();
-  tutAdvance('map'); // hướng dẫn tân thủ: dịch chuyển lần đầu
-  AudioSys.playBgm(BGM_TRACKS[mapId]);
-  buildWorld();
-  player.x = md.spawn.x; player.y = md.spawn.y;
-  if (md.type === 'safe') player.pk = false; // khu an toàn: không thể bật PK
-  const zt = zoneType();
-  zoneBanner = { text: md.name, sub: `${zt.name} — ${md.desc}`, color: zt.color, t: 3.2 };
-  addEffect({ type:'ring', x:player.x, y:player.y, r:120, color:zt.color, big:true });
-  calcDerived(); saveGame();
-};
-
 // ---------- Cài đặt (lưu localStorage) ----------
 // shake mặc định TẮT (chống chóng mặt) — save cũ không có key này nên tự migrate sang tắt
 const SETTINGS = Object.assign({ bgm:35, sfx:60, lowFx:false, mobName:true, minimap:true, shake:false },
@@ -3334,100 +3321,6 @@ function doJump(){
   addFloat(player.x, player.y-44, 'Lăng Ba Vi Bộ!', '#9fd8ff', 13);
   flashSkill('sk-jump');
 }
-function castSkill(which){
-  if (!player || dead) return;
-  const sect = SECTS[player.sect];
-  let def, key = which;
-  if (which==='a'){ if (player.level<2) return lockedMsg(2); def = sect.skillA; }
-  else if (which==='b'){ if (player.level<4) return lockedMsg(4); def = AMKHI; }
-  else { if (player.level<9) return lockedMsg(9); def = { cd:TP_CD, qi: player.level < 20 ? Math.round(TP_QI*0.7) : TP_QI, mult:sect.tp.mult }; }
-  if (player.cd[key] > 0) return;
-  if (player.qi < def.qi){ addFloat(player.x, player.y-34, 'Không đủ Chân Khí!', '#7fa8e0', 12); return; }
-  player.qi -= def.qi; player.cd[key] = def.cd;
-
-  if (which==='b'){ // ám khí projectile
-    const t = nearestMob(360);
-    const ang = t ? Math.atan2(t.y-player.y, t.x-player.x) : player.face;
-    player.face = ang;
-    projectiles.push({ x:player.x, y:player.y, ang, speed:460, dmg:player.atk*def.mult*(1+(player.amkhiPct||0)+(player.skillDmgPct||0)), kind:'amkhi', life:0.85, color:'#e8e8ff' });
-    addEffect({ type:'arc', x:player.x, y:player.y, face:ang, r:40, color:'#aab' });
-    spawnSlash(player.x + Math.cos(ang)*30, player.y + Math.sin(ang)*30 - 12, ang, 80);
-    return;
-  }
-  if (which==='c'){ // Trấn Phái — big AoE
-    spawnSkillVfx('sx_' + player.sect + '_c', { color:sect.color, glyph:'鎮' }, 'aoe', player.face, TP_RADIUS);
-    addEffect({ type:'ring', x:player.x, y:player.y, r:TP_RADIUS, color:sect.color, big:true });
-    addEffect({ type:'ring', x:player.x, y:player.y, r:TP_RADIUS*0.6, color:sect.glow, big:true });
-    // kiếm khí quét quanh người — 6 đạo tỏa ra mọi hướng
-    for (let i = 0; i < 6; i++){
-      const a = i * Math.PI/3 + player.face;
-      spawnSlash(player.x + Math.cos(a)*70, player.y + Math.sin(a)*70 - 10, a, 170);
-    }
-    for (const m of mobs){
-      if (m.dead) continue;
-      if (dist(player.x, player.y, m.x, m.y) < TP_RADIUS + m.def.size){
-        let dmg = player.atk * def.mult * rnd(0.95,1.1) * (1 + (player.skillDmgPct || 0));
-        let src = 'tp';
-        if (Math.random() < player.crit){ dmg *= 2; }
-        hurtMob(m, dmg, src);
-      }
-    }
-    flashSkill('sk-c');
-    return;
-  }
-  // skill A by sect type
-  const type = sect.skillA.type;
-  const _sva = 'sx_' + player.sect + '_a';
-  if (type==='cone'){
-    const t = nearestMob(160);
-    if (t) player.face = Math.atan2(t.y-player.y, t.x-player.x);
-    spawnSkillVfx(_sva, { color:sect.color, glyph:'絕' }, 'cone', player.face, 120);
-    addEffect({ type:'cone', x:player.x, y:player.y, face:player.face, r:120, color:sect.color });
-    spawnSlash(player.x + Math.cos(player.face)*62, player.y + Math.sin(player.face)*62 - 12, player.face, 160);
-    for (const m of mobs){
-      if (m.dead) continue;
-      const d = dist(player.x, player.y, m.x, m.y);
-      if (d < 125 + m.def.size){
-        let da = Math.atan2(m.y-player.y, m.x-player.x) - player.face;
-        while (da > Math.PI) da -= 2*Math.PI; while (da < -Math.PI) da += 2*Math.PI;
-        if (Math.abs(da) < 1.0) hurtMob(m, player.atk*def.mult*rnd(0.9,1.1), Math.random()<player.crit?'crit':'hit');
-      }
-    }
-  } else if (type==='proj'){
-    const t = nearestMob(420);
-    const ang = t ? Math.atan2(t.y-player.y, t.x-player.x) : player.face;
-    player.face = ang;
-    const _svc = SECT_VFX[_sva];
-    projectiles.push({ x:player.x, y:player.y, ang, speed:420, dmg:player.atk*def.mult, kind:'skill', life:1.0, color:sect.color, pierce:true, style:(_svc && _svc.proj) || undefined });
-    spawnSkillVfx(_sva, { color:sect.color, glyph:'絕' }, 'cast', ang, 60);
-    spawnSlash(player.x + Math.cos(ang)*34, player.y + Math.sin(ang)*34 - 12, ang, 120);
-  } else if (type==='selfaoe'){
-    spawnSkillVfx(_sva, { color:sect.color, glyph:'絕' }, 'aoe', player.face, 135 + 10*_st);
-    addEffect({ type:'ring', x:player.x, y:player.y, r:135, color:sect.color });
-    for (let i = 0; i < 4; i++){
-      const a = i * Math.PI/2 + Math.PI/4;
-      spawnSlash(player.x + Math.cos(a)*52, player.y + Math.sin(a)*52 - 10, a, 130);
-    }
-    for (let i=0;i<10;i++) addEffect({ type:'ink', x:player.x+rnd(-90,90), y:player.y+rnd(-90,90), vx:rnd(-30,30), vy:rnd(-60,-10), color:sect.color });
-    for (const m of mobs){
-      if (m.dead) continue;
-      if (dist(player.x, player.y, m.x, m.y) < 140 + m.def.size)
-        hurtMob(m, player.atk*def.mult*rnd(0.9,1.1), Math.random()<player.crit?'crit':'hit');
-    }
-  } else if (type==='dash'){
-    spawnSkillVfx(_sva, { color:sect.color, glyph:'絕' }, 'dash', player.face, 150, player.x, player.y);
-    const t = nearestMob(220);
-    const ang = t ? Math.atan2(t.y-player.y, t.x-player.x) : player.face;
-    player.face = ang;
-    player.x = clamp(player.x + Math.cos(ang)*130, 20, MAP.w-20);
-    player.y = clamp(player.y + Math.sin(ang)*130, 20, MAP.h-20);
-    addEffect({ type:'ring', x:player.x, y:player.y, r:70, color:sect.color });
-    spawnSlash(player.x + Math.cos(ang)*40, player.y + Math.sin(ang)*40 - 12, ang, 140);
-    const t2 = nearestMob(110);
-    if (t2) hurtMob(t2, player.atk*def.mult*rnd(0.95,1.15), Math.random()<player.crit?'crit':'hit');
-  }
-  flashSkill('sk-a');
-}
 function lockedMsg(lv){ addFloat(player.x, player.y-34, `Mở khóa ở cấp ${lv}`, '#8a8a8a', 12); }
 function flashSkill(id){
   const el = document.getElementById(id);
@@ -3480,6 +3373,9 @@ function updateHints(dt){
   if (window._hintT > 0) return;
   window._hintT = 1.2; // quét 1.2s/lần — khỏi tốn hiệu năng
   const t = el('hint-toast'); if (!t) return;
+  if (player && !player.hintCd) player.hintCd = {};   // defense-in-depth: newPlayer() and loadGame() both set these now, but guard here too
+  if (player && !player.hintOff) player.hintOff = {}; // so any future field added to only one path degrades gracefully instead of crashing
+
   if (DGN || !player || dead || player.combatT > 0 || anyPanelOpen()){
     if (!t.classList.contains('hidden')) t.classList.add('hidden');
     return;
@@ -3784,32 +3680,6 @@ window.fuseBikip = function(){
   }
   setTimeout(()=>{ try{ tryTalk(); }catch(e){} }, 900);
 };
-window.turnInQuest = function(){
-  AudioSys.sfx('quest', 0.9);
-  const q = currentQuest();
-  if (!q || questState !== 'done') return;
-  player.silver += q.rew.silver || 0;
-  player.mat += q.rew.mat || 0;
-  // QA fix: thưởng kèm trang bị (Q4 tặng Tân Thủ Kiếm để Q5 rèn +3 không bao giờ kẹt)
-  if (q.rew.item && player.inv.length < 30){
-    const gi = genSpecific(q.rew.item, 0, Math.max(1, player.level));
-    player.inv.push(gi);
-    addFloat(player.x, player.y-64, `Nhận được: ${gi.name}!`, '#9fd0ff', 14);
-  }
-  gainXp(q.rew.xp);
-  questIdx++;
-  questProg = 0;
-  questState = questIdx < QUESTS.length ? 'active' : 'all';
-  if (questIdx === 9) spawnBoss(); // quest 10
-  closePanels(); saveGame();
-};
-function closePanels(){
-  for (const id of ['panel-char','panel-inv','panel-forge','panel-quest','panel-mount','panel-dantian','panel-tuyethoc']){
-    const el = document.getElementById(id);
-    if (el) el.classList.add('hidden');
-  }
-}
-window.closePanels = closePanels;
 // bulletproof close: delegated handler works even if a panel re-rendered mid-session
 document.addEventListener('click', e=>{
   if (e.target && e.target.classList && e.target.classList.contains('close-x')) closePanels();
@@ -4270,7 +4140,7 @@ function update(dt){
     }
   }
   for (const m of mobs){ if (m.dead && m.deadT > 0) m.deadT -= dt; }
-  mobs = mobs.filter(m => !m.dead || m.deadT > 0 || (m.type !== 'boss' && !m.gone));
+  compactInPlace(mobs, m => !m.dead || m.deadT > 0 || (m.type !== 'boss' && !m.gone));
 
   // projectiles
   for (const p of projectiles){
@@ -4345,14 +4215,14 @@ function update(dt){
       }
     }
   }
-  projectiles = projectiles.filter(p=>p.life > 0);
+  compactInPlace(projectiles, p=>p.life > 0);
   if (projectiles.length > 160) projectiles.splice(0, projectiles.length - 160); // trần cứng chống phình RAM
 
   // effects & floats
   for (const e of effects){ e.t += dt; if (e.type==='ink' || e.vx || e.vy){ e.x += (e.vx||0)*dt; e.y += (e.vy||0)*dt; } if (e.spin) e.ang = (e.ang || 0) + e.spin*dt; }
-  effects = effects.filter(e => e.t < (e.dur || (e.big?0.7:0.45)));
+  compactInPlace(effects, e => e.t < (e.dur || (e.big?0.7:0.45)));
   for (const f of floats){ f.t -= dt*0.8; f.y -= 26*dt; }
-  floats = floats.filter(f=>f.t > 0);
+  compactInPlace(floats, f=>f.t > 0);
   for (const mi of mists){ mi.x += mi.v*dt; if (mi.x - mi.r > W) mi.x = -mi.r; }
   updateAmbients(dt); // hạt môi trường: hoa rơi, tuyết, than hồng…
   tickWeather(dt); // sấm chớp & thời tiết động (Gói B)
@@ -4633,30 +4503,46 @@ function render(){
   // Boss telegraph: vùng cảnh báo chiêu trên mặt đất (GDD Boss v2.1)
   for (const m of mobs){ if (m.tele) drawBossTele(m); }
   // trees after npc but before mobs for depth — simple approach: draw all entities sorted by y
+  // Perf: entities are plain tagged records (not per-entity closures) and off-screen mobs are
+  // culled here — this only skips their DRAW, their AI/combat in update() is unaffected.
+  const CULL_MARGIN = 220;
   const ents = [];
   for (const m of mobs){
-    if (!m.dead) ents.push({ y:m.y, draw:()=>drawMob(m) });
-    else if (m.deadT > 0) ents.push({ y:m.y, draw:()=>{ // xác quái tan dần thành vệt mực loang
-      const k = Math.max(0, m.deadT/0.45);
-      ctx.save(); ctx.globalAlpha = k*0.45;
-      ctx.fillStyle = '#241f18';
-      ctx.beginPath(); ctx.ellipse(m.x, m.y+4, m.def.size*(1+(1-k)*0.8), m.def.size*0.5*(1+(1-k)*0.4), 0, 0, 7); ctx.fill();
-      ctx.restore();
-    }});
+    if (m.x < camera.x-CULL_MARGIN || m.x > camera.x+W+CULL_MARGIN || m.y < camera.y-CULL_MARGIN || m.y > camera.y+H+CULL_MARGIN) continue;
+    if (!m.dead) ents.push({ y:m.y, kind:'mob', m });
+    else if (m.deadT > 0) ents.push({ y:m.y, kind:'deadmob', m }); // xác quái tan dần thành vệt mực loang
   }
-  ents.push({ y:player.y, draw:()=>{ drawPlayer();
-    // vòng sáng tịnh tâm quanh người khi đang đứng trong suối hồi phục
-    if (md.spring && dist(player.x, player.y, SPRING.x, SPRING.y) < SPRING.r){
-      ctx.beginPath(); ctx.arc(player.x, player.y+2, 26 + Math.sin(performance.now()/300)*3, 0, 7);
-      ctx.strokeStyle = 'rgba(120,230,200,.42)'; ctx.lineWidth = 2; ctx.stroke();
-    }
-  } });
-  if (petObj) ents.push({ y:petObj.y, draw:drawPet });
-  if (mountObj) ents.push({ y:mountObj.y, draw:drawMount });
-  for (const h of horses) ents.push({ y:h.y, draw:(hh => () => drawHorse(hh))(h) }); // GDD Đợt 2 B5
-  for (const d of sortedDecor) if (d.type==='tree') ents.push({ y:d.y, draw:()=>drawTree(d) });
+  ents.push({ y:player.y, kind:'player' });
+  if (petObj) ents.push({ y:petObj.y, kind:'pet' });
+  if (mountObj) ents.push({ y:mountObj.y, kind:'mount' });
+  for (const h of horses) ents.push({ y:h.y, kind:'horse', h }); // GDD Đợt 2 B5
+  for (const d of sortedDecor) if (d.type==='tree') ents.push({ y:d.y, kind:'tree', d });
   ents.sort((a,b)=>a.y-b.y);
-  for (const e of ents) e.draw();
+  for (const e of ents){
+    switch (e.kind){
+      case 'mob': drawMob(e.m); break;
+      case 'deadmob': {
+        const m = e.m, k = Math.max(0, m.deadT/0.45);
+        ctx.save(); ctx.globalAlpha = k*0.45;
+        ctx.fillStyle = '#241f18';
+        ctx.beginPath(); ctx.ellipse(m.x, m.y+4, m.def.size*(1+(1-k)*0.8), m.def.size*0.5*(1+(1-k)*0.4), 0, 0, 7); ctx.fill();
+        ctx.restore();
+        break;
+      }
+      case 'player':
+        drawPlayer();
+        // vòng sáng tịnh tâm quanh người khi đang đứng trong suối hồi phục
+        if (md.spring && dist(player.x, player.y, SPRING.x, SPRING.y) < SPRING.r){
+          ctx.beginPath(); ctx.arc(player.x, player.y+2, 26 + Math.sin(performance.now()/300)*3, 0, 7);
+          ctx.strokeStyle = 'rgba(120,230,200,.42)'; ctx.lineWidth = 2; ctx.stroke();
+        }
+        break;
+      case 'pet': drawPet(); break;
+      case 'mount': drawMount(); break;
+      case 'horse': drawHorse(e.h); break;
+      case 'tree': drawTree(e.d); break;
+    }
+  }
 
   if (TRIB.active) drawTrib(); // A1: vùng cảnh báo thiên lôi
 
@@ -4814,27 +4700,6 @@ function drawCalligraphy(text, x, y, color, size, screenSpace){
   ctx.strokeText(text, x, y);
   ctx.fillStyle = color; ctx.fillText(text, x, y);
 }
-function drawTree(d){
-  // cây đung đưa theo gió — xoay nhẹ quanh gốc, mỗi cây một pha riêng (tắt khi lowFx)
-  const sway = SETTINGS.lowFx ? 0 : Math.sin(performance.now()/900 + d.x*0.013 + d.y*0.007) * 0.024;
-  ctx.save(); ctx.translate(d.x, d.y); ctx.rotate(sway); ctx.translate(-d.x, -d.y);
-  const tim = (typeof TREE_IMGS !== 'undefined') && TREE_IMGS[curMap];
-  if (tim && tim.complete && tim.naturalWidth){
-    const h = 100*d.s, w = h * (tim.naturalWidth/tim.naturalHeight);
-    ctx.drawImage(tim, d.x-w/2, d.y-h*0.94, w, h);
-    ctx.restore();
-    return;
-  }
-  ctx.strokeStyle = '#3a3025'; ctx.lineWidth = 4*d.s; ctx.lineCap='round';
-  ctx.beginPath(); ctx.moveTo(d.x, d.y); ctx.quadraticCurveTo(d.x+4*d.s, d.y-18*d.s, d.x-2*d.s, d.y-34*d.s); ctx.stroke();
-  const g = ctx.createRadialGradient(d.x, d.y-40*d.s, 2, d.x, d.y-40*d.s, 26*d.s);
-  g.addColorStop(0, 'rgba(46,74,50,.85)'); g.addColorStop(1, 'rgba(46,74,50,.15)');
-  ctx.fillStyle = g;
-  ctx.beginPath(); ctx.ellipse(d.x, d.y-40*d.s, 26*d.s, 18*d.s, 0, 0, 7); ctx.fill();
-  ctx.beginPath(); ctx.ellipse(d.x-14*d.s, d.y-30*d.s, 14*d.s, 10*d.s, 0, 0, 7); ctx.fill();
-  ctx.beginPath(); ctx.ellipse(d.x+14*d.s, d.y-32*d.s, 13*d.s, 9*d.s, 0, 0, 7); ctx.fill();
-  ctx.restore();
-}
 function drawRock(d){
   const rim = (typeof ROCK_IMGS !== 'undefined') && ROCK_IMGS[Math.abs(((d.x*7+d.y*13)|0)) % ROCK_IMGS.length];
   if (rim && rim.complete && rim.naturalWidth){
@@ -4846,22 +4711,6 @@ function drawRock(d){
   ctx.beginPath(); ctx.ellipse(d.x, d.y, 14*d.s, 9*d.s, 0.2, 0, 7); ctx.fill();
   ctx.fillStyle = 'rgba(120,115,105,.4)';
   ctx.beginPath(); ctx.ellipse(d.x-3*d.s, d.y-3*d.s, 8*d.s, 5*d.s, 0.2, 0, 7); ctx.fill();
-}
-function drawNpc(){
-  const x = NPC.x, y = NPC.y;
-  ctx.fillStyle = 'rgba(0,0,0,.18)'; ctx.beginPath(); ctx.ellipse(x, y+8, 14, 5, 0, 0, 7); ctx.fill();
-  ctx.fillStyle = '#5a4a30';
-  ctx.beginPath(); ctx.ellipse(x, y-8, 11, 15, 0, 0, 7); ctx.fill();
-  ctx.fillStyle = '#e8cfa8'; ctx.beginPath(); ctx.arc(x, y-28, 7, 0, 7); ctx.fill();
-  ctx.strokeStyle = '#ddd'; ctx.lineWidth = 1.5;
-  ctx.beginPath(); ctx.moveTo(x-4, y-22); ctx.quadraticCurveTo(x, y-14, x+4, y-22); ctx.stroke();
-  ctx.fillStyle = '#f0d68a'; ctx.font = 'bold 13px \"Be Vietnam Pro\", sans-serif'; ctx.textAlign='center';
-  ctx.strokeStyle='rgba(0,0,0,.6)'; ctx.lineWidth=3;
-  const q = currentQuest();
-  const mark = q && questState==='done' ? '!' : (q ? '…' : '');
-  if (mark){ ctx.strokeText(mark, x, y-44); ctx.fillText(mark, x, y-44); }
-  ctx.font = '12px \"Be Vietnam Pro\", sans-serif'; ctx.fillStyle = '#fff';
-  ctx.strokeText(NPC.name, x, y-52); ctx.fillText(NPC.name, x, y-52);
 }
 function drawMob(m){
   const d = m.def;
@@ -5425,18 +5274,6 @@ function drawDantianAura(p){
     ctx.beginPath(); ctx.arc(ox, oy, os*2.1, 0, 7); ctx.fill();
   }
 }
-function drawMountains(){
-  ctx.save();
-  ctx.fillStyle = 'rgba(60,54,44,.28)';
-  ctx.beginPath(); ctx.moveTo(0,0);
-  for (let x=0;x<=W;x+=W/8) ctx.lineTo(x, 34 + Math.sin(x*0.01+2)*18 + (x%160===0?14:0));
-  ctx.lineTo(W,0); ctx.closePath(); ctx.fill();
-  ctx.fillStyle = 'rgba(60,54,44,.16)';
-  ctx.beginPath(); ctx.moveTo(0,0);
-  for (let x=0;x<=W;x+=W/6) ctx.lineTo(x, 52 + Math.cos(x*0.013)*20);
-  ctx.lineTo(W,0); ctx.closePath(); ctx.fill();
-  ctx.restore();
-}
 function drawTitleBackdrop(){
   ctx.fillStyle = '#ece2c8'; ctx.fillRect(0,0,W,H);
   drawMountains();
@@ -5450,27 +5287,6 @@ function drawTitleBackdrop(){
 
 // ---------- HUD ----------
 const el = id => document.getElementById(id);
-function updateHud(){
-  el('hud-name').textContent = `${player.ascended ? '☁ Tán Tiên · xuất thế ' + SECTS[player.sect].name : SECTS[player.sect].name} — Cấp ${player.level}${player.level>=MAX_LV?' (Tối đa)':''}${player.maDao ? ' ⚫ MA ĐẠO' : ''}`;
-  el('bar-hp').style.width = (100*player.hp/player.maxHp)+'%';
-  el('txt-hp').textContent = `${Math.ceil(player.hp)} / ${player.maxHp}`;
-  el('bar-qi').style.width = (100*player.qi/player.maxQi)+'%';
-  el('txt-qi').textContent = `Chân Khí ${Math.floor(player.qi)} / ${player.maxQi}`;
-  if (player.level >= MAX_LV){ el('bar-xp').style.width='100%'; el('txt-xp').textContent='MAX'; }
-  else { el('bar-xp').style.width = (100*player.xp/XP_TABLE[player.level-1])+'%';
-         el('txt-xp').textContent = `${Math.floor(player.xp)} / ${XP_TABLE[player.level-1]} EXP`; }
-  el('hud-silver').textContent = `◈ ${player.silver}`;
-  el('hud-mat').textContent = `✦ ${player.mat} Tinh Thạch`;
-  // quest tracker — chính tuyến + tối đa 2 phụ tuyến
-  { const _th = trackerHtml(); if (window._lastTrack !== _th){ window._lastTrack = _th; el('quest-tracker').innerHTML = _th; } } // GDD Đợt 2 B2: cache để nút bấm không bị render đè
-  // hint
-  el('hint-bar').textContent = 'WASD di chuyển · Space đánh · E nói chuyện · R hồ lô thuốc · Q nhiệm vụ · M bản đồ · C nhân vật · B túi · K kỹ năng · O cài đặt · U minimap' + (player.canJump ? ' · J nhảy' : '');
-  // skill buttons
-  setSkillBtn('sk-a', player.level>=2, player.cd.a, SECTS[player.sect].skillA.cd, SECTS[player.sect].skillA.name);
-  setSkillBtn('sk-b', player.level>=4, player.cd.b, AMKHI.cd, 'Ám Khí');
-  setSkillBtn('sk-c', player.level>=9, player.cd.c, TP_CD, SECTS[player.sect].tp.name);
-  setSkillBtn('sk-jump', !!player.canJump, player.cd.jump, 0.01, 'Lăng Ba Vi Bộ — không cooldown');
-}
 function setSkillBtn(id, unlocked, cd, max, name){
   const b = el(id);
   b.classList.toggle('locked', !unlocked);
@@ -5483,31 +5299,7 @@ function setSkillIcon(id, url){
   b.style.backgroundImage = `url(${url})`;
   b.classList.add('has-img');
 }
-function applySkillIcons(){
-  const art = SECT_ART[player.sect];
-  setSkillIcon('sk-basic', 'assets/skills/basic.png');
-  setSkillIcon('sk-a', art.iconA);
-  setSkillIcon('sk-b', 'assets/skills/amkhi.png');
-  setSkillIcon('sk-c', art.iconTP);
-}
-
 // ---------- Panels ----------
-function togglePanel(which){
-  const map = { char:'panel-char', inv:'panel-inv', forge:'panel-forge', mount:'panel-mount', dantian:'panel-dantian', tuyethoc:'panel-tuyethoc' };
-  const id = map[which];
-  const p = el(id);
-  const wasHidden = p.classList.contains('hidden');
-  closePanels();
-  if (wasHidden){ renderPanel(which); p.classList.remove('hidden'); }
-}
-function renderPanel(which){
-  if (which==='char') renderChar();
-  else if (which==='inv') renderInv();
-  else if (which==='mount') renderMount();
-  else if (which==='dantian') renderDantian();
-  else if (which==='tuyethoc') renderTuyetHoc();
-  else renderForge();
-}
 el('btn-char').addEventListener('click', ()=>togglePanel('char'));
 el('btn-inv').addEventListener('click', ()=>togglePanel('inv'));
 el('btn-bag').addEventListener('click', ()=>togglePanel('bag'));
@@ -5674,51 +5466,6 @@ function itemLineHtml(it){
   else s += ` · <span style="opacity:.4">☆(+10)</span>`;
   return s;
 }
-function renderInv(){
-  let html = `<h3>Hành Trang — 12 Ô Trang Bị</h3><button class="close-x" onclick="closePanels()">✕</button>`;
-  html += `<div class="stat-sec">ĐANG MẶC (bấm để tháo)</div>`;
-  for (const sl of SLOTS){
-    const it = player.equip[sl.id];
-    html += `<div class="slot-row" onclick="unequip('${sl.id}')">
-      <span class="s-name"><b>${sl.name}</b><br>${it?itemLineHtml(it):'<span style="opacity:.35">— trống —</span>'}</span></div>`;
-  }
-  html += `<div class="stat-sec">TÚI ĐỒ (${player.inv.length}/30) — bấm để mặc, giữ phụ phẩm hoặc phân giải</div>`;
-  if (!player.inv.length) html += `<div style="opacity:.5;font-size:12px;padding:6px">Chưa có vật phẩm — hãy đi farm quái!</div>`;
-  player.inv.forEach((it,i)=>{
-    html += `<div class="inv-item"><span class="s-name"><span class="${RARITIES[it.rarity].cls}">${it.name}</span>
-      <span style="opacity:.6"> (${it.slotName} C${it.level})</span><br><span class="item-tip">${itemLineHtml(it)}</span></span>
-      <span><button class="mini-btn" onclick="equipItem(${i})">Mặc</button><button class="mini-btn" onclick="salvage(${i})">Phân Giải</button></span></div>`;
-  });
-  el('panel-inv').innerHTML = html;
-}
-window.equipItem = function(i){
-  const it = player.inv[i];
-  if (!it) return;
-  if (player.level < itemReqLv(it)){
-    addFloat(player.x, player.y-30, `Cần LV${itemReqLv(it)} để mặc ${it.name}!`, '#ff7a6a', 13);
-    return;
-  }
-  player.inv.splice(i,1);
-  if (player.equip[it.slot]) player.inv.push(player.equip[it.slot]);
-  player.equip[it.slot] = it;
-  calcDerived(); renderInv(); saveGame();
-};
-window.unequip = function(slotId){
-  const it = player.equip[slotId];
-  if (!it || player.inv.length>=30) return;
-  player.equip[slotId] = null; player.inv.push(it);
-  calcDerived(); renderInv(); saveGame();
-};
-window.salvage = function(i){
-  const it = player.inv[i];
-  if (!it) return;
-  const gain = 1 + it.rarity + Math.floor(it.plus/3);
-  player.mat += gain;
-  player.inv.splice(i,1);
-  addFloat(player.x, player.y-30, `Phân giải +${gain}✦`, '#9fd0ff', 12);
-  renderInv(); saveGame();
-};
-
 let forgeSel = null;
 window.forgeUseCharm = false;
 // GDD 3 giai đoạn: +1~6 an toàn 100% (Huyền Thiết) · +7~9 Đập Ngọc Tu La, xịt tụt 1 cấp · +10/+11 CHỈ tại Lò Bát Quái
@@ -6451,34 +6198,6 @@ window.openMeridianNode = function(id){
   }
   calcDerived(); saveGame(); renderDantian();
 };
-window.breakthrough = function(){
-  const realm = player.dantian.realm;
-  const next = DANTIAN_REALMS[realm+1];
-  if (!next || !next.cost) return;
-  if (player.dantian.tuvi < Math.floor(next.cost.tuvi * (player.doNgo ? 0.7 : 1)) || player.silver < next.cost.silver || player.mat < next.cost.mat) return;
-  player.silver -= next.cost.silver; player.mat -= next.cost.mat;
-  const msg = document.getElementById('dantian-msg');
-  if (Math.random()*100 < next.rate){
-    player.dantian.realm++;
-    player.dantian.tuvi -= next.cost.tuvi;
-    if (msg){ msg.textContent = `✔ Đột phá thành công — ${next.name}!` + (next.unlock ? ` Học được ${next.unlock}!` : ''); msg.style.color = '#8fd18f'; }
-    addFloat(player.x, player.y-46, `ĐỘT PHÁ: ${next.name}!`, '#9fd0ff', 18);
-    if (player.dantian.realm === 5){ // Thăng Linh — mở Té Núi & võ học giang hồ (GDD §5.4)
-      zoneBanner = { text:'☁ THĂNG LINH — MỞ TÉ NÚI', sub:'3 vách cơ duyên: Vân Đài (Chung Nam) · Đoạn Trường Nhai (Tuyệt Tình) · Định Biên Nhai (Nhạn Môn) — võ học giang hồ đã có thể lĩnh ngộ!', color:'#e8c84a', t:6 };
-    }
-    if (next.unlock) addFloat(player.x, player.y-70, `Học được: ${next.unlock}!`, '#f0d68a', 15);
-    addEffect({ type:'ring', x:player.x, y:player.y, r:110, color:'#5ea0e8', big:true });
-    for (let i=0;i<14;i++) addEffect({ type:'ink', x:player.x, y:player.y, vx:rnd(-90,90), vy:rnd(-120,-30), color:'#5ea0e8' });
-    calcDerived(); player.hp = player.maxHp; player.qi = player.maxQi;
-  } else {
-    player.dantian.tuvi = Math.floor(player.dantian.tuvi * 0.5);
-    if (msg){ msg.textContent = `✘ Đột phá thất bại — tẩu hỏa, Tu Vi tổn hao một nửa!`; msg.style.color = '#ff7a6a'; }
-    addFloat(player.x, player.y-46, 'Tẩu hỏa! Tu Vi tổn hao!', '#ff7a6a', 14);
-  }
-  calcDerived(); saveGame();
-  setTimeout(()=>{ try{ renderDantian(); }catch(e){} }, 900);
-};
-
 // ---------- Sect select / boot ----------
 function startGame(sectKey, quze){
   newPlayer(sectKey);
@@ -7070,25 +6789,6 @@ window.salvage = function(i){
 };
 
 // ---------- Bản Đồ thế giới ----------
-function renderMapPanel(){
-  const zt = zoneType();
-  let html = `<h3>Bản Đồ Giang Hồ</h3><button class="close-x" onclick="closePanels()">✕</button>`;
-  html += `<div style="font-size:12px;color:#b8a878;margin-bottom:6px">Đang ở: <b style="color:${zt.color}">${mapDef().name}</b> · ${zt.name}</div>`;
-  for (const id in MAPS){
-    const m = MAPS[id], z2 = ZONE_TYPES[m.type];
-    const locked = player.level < m.min, cur = id === curMap;
-    html += `<div class="map-row" style="${cur?'border-color:#f0d68a;background:rgba(201,162,39,.1)':''}">
-      <span style="flex:1"><span class="m-name">${m.name}</span>
-        <span style="font-size:10.5px;opacity:.6"> · LV ${m.range}</span>
-        <span class="zone-badge" style="color:${z2.color};border-color:${z2.color}">${z2.name}</span>
-        <div class="m-desc">${m.desc}</div>${bandSummaryHtml(m)}</span>
-      <span class="m-side">${cur ? '<span style="color:#f0d68a;font-size:11px">ĐANG Ở ĐÂY</span>'
-        : locked ? `<span style="color:#ff7a6a;font-size:11px">Cần cấp ${m.min}</span>`
-        : `<button class="mini-btn" onclick="travelTo('${id}')">Dịch Chuyển</button>`}</span></div>`;
-  }
-  el('panel-map').innerHTML = html;
-}
-
 // ---------- Kỹ Năng: gán vào taskbar 5 ô ----------
 function renderSkillPanel(){
   let html = `<h3>Kỹ Năng — gán tối đa 5 ô (phím 1-5)</h3><button class="close-x" onclick="closePanels()">✕</button>`;
@@ -7368,7 +7068,8 @@ function updateHud(){
   const sect = SECTS[player.sect];
   const tt = player.titles && player.titles.equipped && TITLES.find(x=>x.id===player.titles.equipped);
   const nameEl = el('hud-name');
-  nameEl.innerHTML = `${tt?`<span class="title-tag">【${tt.name}】</span> `:''}${player.name ? `<span class="char-name">${player.name}</span> · ` : ''}${player.ascended ? `<span style="color:#fff2b0">☁ Tán Tiên</span><span style="opacity:.55;font-size:10px"> · xuất thế ${sect.name}</span>` : sect.name} · Cấp ${player.level}${player.level>=MAX_LV?' (Tối đa)':''}${player.toiac>0?` · <b>TỘI ÁC ${player.toiac}</b>`:''}`;
+  const _nameHtml = `${tt?`<span class="title-tag">【${tt.name}】</span> `:''}${player.name ? `<span class="char-name">${player.name}</span> · ` : ''}${player.ascended ? `<span style="color:#fff2b0">☁ Tán Tiên</span><span style="opacity:.55;font-size:10px"> · xuất thế ${sect.name}</span>` : sect.name} · Cấp ${player.level}${player.level>=MAX_LV?' (Tối đa)':''}${player.toiac>0?` · <b>TỘI ÁC ${player.toiac}</b>`:''}`;
+  if (window._lastHudName !== _nameHtml){ window._lastHudName = _nameHtml; nameEl.innerHTML = _nameHtml; } // dirty-check: innerHTML rewrite is real DOM churn if done every frame
   nameEl.classList.toggle('toiac', (player.toiac||0) > 0);
   el('bar-hp').style.width = (100*player.hp/player.maxHp)+'%';
   el('txt-hp').textContent = `${Math.ceil(player.hp)} / ${player.maxHp}`;
@@ -7401,15 +7102,20 @@ function updateHud(){
   if (gtEl && player.gt){
     const gti = gameTimeInfo();
     const _wxn = weatherNow();
-    gtEl.innerHTML = `${gti.season.icon} <b>${gti.season.name}</b> · ${gti.day}/${gti.month} N${gti.year} · ${CANH_NAMES[gti.canh]}${_wxn ? ` · <span title="Thời tiết: ${_wxn.name}">${_wxn.icon}</span>` : ''}${isNightGame() ? ' · <span style="color:#8ab8e8">☾</span>' : ''}`;
-    gtEl.style.color = gti.season.color;
-    gtEl.title = `Lịch Tu Tiên — mùa ${gti.season.name}: ${gti.season.buffTxt} · ban đêm quái +10% công nhưng +10% EXP`;
+    const _timeHtml = `${gti.season.icon} <b>${gti.season.name}</b> · ${gti.day}/${gti.month} N${gti.year} · ${CANH_NAMES[gti.canh]}${_wxn ? ` · <span title="Thời tiết: ${_wxn.name}">${_wxn.icon}</span>` : ''}${isNightGame() ? ' · <span style="color:#8ab8e8">☾</span>' : ''}`;
+    if (window._lastHudTime !== _timeHtml){ // dirty-check: this ticks every real-time second otherwise, every frame
+      window._lastHudTime = _timeHtml;
+      gtEl.innerHTML = _timeHtml;
+      gtEl.style.color = gti.season.color;
+      gtEl.title = `Lịch Tu Tiên — mùa ${gti.season.name}: ${gti.season.buffTxt} · ban đêm quái +10% công nhưng +10% EXP`;
+    }
   }
   // bản đồ + loại khu vực + đai cấp đang đứng
   const md = mapDef(), zt = zoneType();
   const _hb = bandOfDist(md, player.x, player.y);
-  el('hud-map').innerHTML = `${md.name}<span class="zone-badge" style="color:${zt.color};border-color:${zt.color}">${zt.name}</span>`
+  const _mapHtml = `${md.name}<span class="zone-badge" style="color:${zt.color};border-color:${zt.color}">${zt.name}</span>`
     + (_hb >= 0 ? `<span class="zone-badge" style="color:${BAND_COLORS[_hb]};border-color:${BAND_COLORS[_hb]}">Đai ${BAND_NAMES[_hb]} · ${bandLvText(md,_hb)}</span>` : '');
+  if (window._lastHudMap !== _mapHtml){ window._lastHudMap = _mapHtml; el('hud-map').innerHTML = _mapHtml; } // dirty-check: rarely changes, was rewritten every frame
   // nút PK: chỉ ở map Dã Ngoại / Huyết Chiến
   const pkBtn = el('btn-pk');
   if (md.type === 'safe') pkBtn.classList.add('hidden');
@@ -7450,50 +7156,6 @@ function updateHud(){
 }
 function applySkillIcons(){
   setSkillIcon('sk-basic', 'assets/skills/basic.png');
-}
-
-// ---------- NPC (override): nhiều NPC, mỗi map, có hình riêng ----------
-function drawNpc(){
-  for (const n of NPCS){
-    if (n.map !== curMap) continue;
-    const im = NPC_IMGS[n.id];
-    ctx.fillStyle = 'rgba(0,0,0,.18)';
-    ctx.beginPath(); ctx.ellipse(n.x, n.y+8, 14, 5, 0, 0, 7); ctx.fill();
-    if (im && im.complete && im.naturalWidth){
-      const nh = 64, nw = nh * (im.naturalWidth/im.naturalHeight);
-      ctx.drawImage(im, n.x - nw/2, n.y - nh + 10, nw, nh);
-    } else {
-      ctx.fillStyle = '#5a4a30';
-      ctx.beginPath(); ctx.ellipse(n.x, n.y-8, 11, 15, 0, 0, 7); ctx.fill();
-      ctx.fillStyle = '#e8cfa8'; ctx.beginPath(); ctx.arc(n.x, n.y-28, 7, 0, 7); ctx.fill();
-      ctx.strokeStyle = '#ddd'; ctx.lineWidth = 1.5;
-      ctx.beginPath(); ctx.moveTo(n.x-4, n.y-22); ctx.quadraticCurveTo(n.x, n.y-14, n.x+4, n.y-22); ctx.stroke();
-    }
-    ctx.font = '12px \"Be Vietnam Pro\", sans-serif'; ctx.textAlign = 'center';
-    ctx.strokeStyle='rgba(0,0,0,.6)'; ctx.lineWidth=3;
-    if (n.talk === 'quest'){
-      const q = currentQuest();
-      const mark = q && questState==='done' ? '!' : (q ? '…' : '');
-      if (mark){ ctx.font = 'bold 13px \"Be Vietnam Pro\", sans-serif'; ctx.fillStyle = '#f0d68a';
-        ctx.strokeText(mark, n.x, n.y-64); ctx.fillText(mark, n.x, n.y-64); ctx.font = '12px \"Be Vietnam Pro\", sans-serif'; }
-    }
-    ctx.fillStyle = '#fff';
-    ctx.strokeText(n.name, n.x, n.y-52); ctx.fillText(n.name, n.x, n.y-52);
-  }
-}
-// Nói chuyện: NPC gần nhất trong map
-function tryTalk(){
-  let best = null, bd = 95;
-  for (const n of NPCS){
-    if (n.map !== curMap) continue;
-    const d = dist(player.x, player.y, n.x, n.y);
-    if (d < bd){ bd = d; best = n; }
-  }
-  if (!best) return;
-  if (best.talk === 'quest') return tryTalkQuest();
-  if (best.talk === 'forge'){ renderBaGua(); return; }
-  if (best.talk === 'shop') return renderShop(best);
-  if (best.talk === 'abode'){ renderAbode(); return; }
 }
 // ---------- Hệ thống cửa hàng — mỗi NPC một quầy hàng riêng ----------
 const SHOPS = {
