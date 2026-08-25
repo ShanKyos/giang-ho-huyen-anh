@@ -23,7 +23,8 @@ export const saveRouter = createRouter({
         return { ok: true as const, skipped: true as const, savedAt: existing.savedAt };
       }
       await upsertSave(ctx.user.id, input.data, input.savedAt);
-      // Cập nhật Bảng Xếp Hạng Võ Lâm từ snapshot vừa lưu (bỏ qua nếu payload lỗi)
+      // Cập nhật Bảng Xếp Hạng Võ Lâm từ snapshot vừa lưu (bỏ qua nếu payload lỗi, nhưng log lại
+      // để không âm thầm mất cập nhật bảng xếp hạng khi schema save đổi mà không ai để ý)
       try {
         const p = JSON.parse(input.data)?.player;
         if (p && typeof p.level === "number") {
@@ -34,7 +35,9 @@ export const saveRouter = createRouter({
             kills: p.kills ?? 0,
           });
         }
-      } catch {}
+      } catch (err) {
+        console.error("leaderboard update failed for user", ctx.user.id, err);
+      }
       return { ok: true as const, skipped: false as const, savedAt: input.savedAt };
     }),
 });
