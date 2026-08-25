@@ -468,6 +468,9 @@ const EXACT = {
   'Khí chất hiệp nghĩa, đi đâu cũng được người đời kính nể.': 'A chivalrous bearing — respected wherever you go.',
   'Đường tà đạo — Du Hiệp kiêng kị, dân thường e ngại.': 'The heretic path — wandering heroes shun you, commoners fear you.',
   'Hài hòa âm dương, không thiên vị bên nào.': 'Yin and yang in harmony, favoring neither side.',
+  'Giọng hô tên chiêu (Tàu)': 'Chinese skill shout',
+  '🔊 Bật giọng hô tên chiêu': '🔊 Skill shout ON',
+  '🔇 Tắt giọng hô tên chiêu': '🔇 Skill shout OFF',
 };
 
 /* ---- Bổ sung dịch: nhiệm vụ chính tuyến/phụ tuyến + võ học/kỹ năng ---- */
